@@ -8,6 +8,51 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Octokit } from "octokit";
 
+export async function getContributionStats() {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      throw new Error("Unauthorized");
+    }
+
+    const token = await getGithubToken();
+    //get the actual github username from the github API
+    const octokit = new Octokit({ auth: token });
+
+    const { data: user } = await octokit.rest.users.getAuthenticated();
+    const username = user.login;
+    const calender = await fetchUserContribution(token, username);
+
+    if (!calender) {
+      return null;
+    }
+
+    const contributions = calender.weeks.flatMap(
+      (week: GitHubContributionCalendar["weeks"][number]) =>
+        week.contributionDays.map(
+          (
+            day: GitHubContributionCalendar["weeks"][number]["contributionDays"][number],
+          ) => ({
+            date: day.date,
+            count: day.contributionCount,
+            level: Math.min(4, Math.floor(day.contributionCount / 3)),
+          }),
+        ),
+    );
+
+    return {
+      totalContributions: calender.totalContributions,
+      contributions,
+    };
+  } catch (error) {
+    console.error("Failed to fetch contribution stats:", error);
+    return null;
+  }
+}
+
 type SampleReview = {
   createdAt: Date;
 };

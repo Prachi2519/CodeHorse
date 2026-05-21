@@ -2,7 +2,6 @@ import { Octokit } from "octokit";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { headers } from "next/headers";
-import { dataTagErrorSymbol } from "@tanstack/react-query";
 
 /**
  * getting the github access token
@@ -31,33 +30,54 @@ export const getGithubToken = async () => {
   return account.accessToken;
 };
 
-export async function fetchUserContribution(token:string, username: string) {
-  const octokit = new Octokit({auth:token});
+export type GitHubContributionCalendar = {
+  totalContributions: number;
+  weeks: {
+    contributionDays: {
+      contributionCount: number;
+      date: string;
+      color: string;
+    }[];
+  }[];
+};
 
-  const query = 
-  query($username: String!) {
-    user(login:$username){
-      contributionCollection {
-        contributionCalender{
-          totalContributions
-          weeks{
-            contributionDays{
-              contributionCount
-              data
-              color
+type GitHubContributionResponse = {
+  user: {
+    contributionsCollection: {
+      contributionCalendar: GitHubContributionCalendar;
+    };
+  };
+};
+
+export async function fetchUserContribution(token: string, username: string) {
+  const octokit = new Octokit({ auth: token });
+
+  const query = `
+    query ($username: String!) {
+      user(login: $username) {
+        contributionsCollection {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays {
+                contributionCount
+                date
+                color
+              }
             }
           }
         }
       }
     }
-  }
+  `;
 
   try {
-    const response: any = await Octokit.graphql(query, {
-      username
-    })
-    return response.user.contributionCollection.contributionCalender
+    const response = await octokit.graphql<GitHubContributionResponse>(query, {
+      username,
+    });
+    return response.user.contributionsCollection.contributionCalendar;
   } catch (error) {
-
+    console.error("Failed to fetch user contributions:", error);
+    return null;
   }
 }
