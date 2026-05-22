@@ -1,0 +1,159 @@
+$ next dev
+(node:19476) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+⨯ ReferenceError: useConnectRepository is not defined
+    at RepositoryPage (app\dashboard\repository\page.tsx:64:35)
+  62 |   } = useRepositories();
+  63 |
+> 64 |   const { mutate: connectRepo } = useConnectRepository();
+     |                                   ^
+  65 |
+  66 |   const allRepositories = useMemo<Repository[]>(
+  67 |     () => data?.pages.flat() ?? [], {
+  digest: '3582856544'
+}
+⨯ ReferenceError: useConnectRepository is not defined
+    at RepositoryPage (app\dashboard\repository\page.tsx:64:35)
+  62 |   } = useRepositories();
+  63 |
+> 64 |   const { mutate: connectRepo } = useConnectRepository();
+     |                                   ^
+  65 |
+  66 |   const allRepositories = useMemo<Repository[]>(
+  67 |     () => data?.pages.flat() ?? [], {
+  digest: '3582856544'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: useConnectRepository is not defined
+    at RepositoryPage (app\dashboard\repository\page.tsx:64:35)
+  62 |   } = useRepositories();
+  63 |
+> 64 |   const { mutate: connectRepo } = useConnectRepository();
+     |                                   ^
+  65 |
+  66 |   const allRepositories = useMemo<Repository[]>(
+  67 |     () => data?.pages.flat() ?? [], {
+  digest: '1205722828'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RedirectBoundary>
+      <RedirectErrorBoundary router={{...}}>
+        <InnerLayoutRouter url="/dashboard..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+          <SegmentViewNode type="layout" pagePath="dashboard/...">
+            <SegmentTrieNode>
+            <script>
+            <script>
+            <script>
+            <DashboardLayout>
+              <SidebarProvider className="bg-white t...">
+                <div data-slot="sidebar-wr..." style={{...}} className="group/side...">
+                  ...
+                    <PopperAnchor __scopePopper={{Menu:[...], ...}} asChild={true} ref={null}>
+                      <Primitive.div asChild={true} ref={function}>
+                        <Primitive.div.Slot ref={function}>
+                          <Primitive.div.SlotClone ref={function}>
+                            <Primitive.button type="button" id="radix-_R_1..." aria-haspopup="menu" aria-expanded={false} ...>
+                              <Primitive.button.Slot type="button" id="radix-_R_1..." aria-haspopup="menu" ...>
+                                <Primitive.button.SlotClone type="button" id="radix-_R_1..." aria-haspopup="menu" ...>
+                                  <button
+                                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transitio..."
+                                    type="button"
+                                    id="radix-_R_1pknelb_"
+                                    aria-haspopup="menu"
+                                    aria-expanded={false}
+                                    aria-controls={undefined}
+                                    data-state="closed"
+                                    data-disabled={undefined}
+                                    disabled={false}
+                                    data-slot="dropdown-menu-trigger"
+                                    onPointerDown={function handleEvent}
+                                    onKeyDown={function handleEvent}
+                                    ref={function}
+-                                   fdprocessedid="ghhczv"
+                                  >
+                  <SidebarInset className="bg-white t...">
+                    <main data-slot="sidebar-inset" className="relative f...">
+                      <header className="flex h-[72...">
+                        <SidebarTrigger className="-ml-1 text...">
+                          <Button data-sidebar="trigger" data-slot="sidebar-tr..." variant="ghost" size="icon-sm" ...>
+                            <button
+                              data-slot="sidebar-trigger"
+                              data-variant="ghost"
+                              data-size="icon-sm"
+                              className={"group/button inline-flex shrink-0 items-center justify-center border border..."}
+                              data-sidebar="trigger"
+                              onClick={function onClick}
+-                             fdprocessedid="640qfry"
+                            >
+                        ...
+                      ...
+                        <RepositoryPage params={Promise} searchParams={Promise}>
+                          <div className="space-y-6">
+                            <section>
+                            <section className="flex flex-...">
+                              <div className="relative f...">
+                                <Search>
+                                <Input className="h-10 borde..." onChange={function onChange} placeholder="Search by ..." ...>
+                                  <input
+                                    type={undefined}
+                                    data-slot="input"
+                                    className="w-full min-w-0 rounded-lg border-input px-2.5 py-1 text-base transition..."
+                                    onChange={function onChange}
+                                    placeholder="Search by repo, owner, language, topic..."
+                                    value=""
+-                                   fdprocessedid="z74pu"
+                                  >
+                              ...
+                            ...
+        ...
+ 
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "scalding-calamity-uninvited.ngrok-free.dev".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['scalding-calamity-uninvited.ngrok-free.dev'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+⚠ Blocked cross-origin request to Next.js dev resource /__nextjs_font/geist-latin.woff2 from "scalding-calamity-uninvited.ngrok-free.dev".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['scalding-calamity-uninvited.ngrok-free.dev'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins

@@ -1,0 +1,10 @@
+$ next dev -p "3017"
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3001
+- PID:          21236
+- Dir:          C:\Users\pg912\OneDrive\Desktop\CodeHorse\my-app
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 21236 /F to stop it.
+error: script "dev" exited with code 1

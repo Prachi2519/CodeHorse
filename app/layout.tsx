@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "react-activity-calendar/tooltips.css";
 import { ThemeProvider } from "@/components/ui/providers/theme-providers";
 import { QueryProvider } from "@/components/ui/providers/query-provider";
 

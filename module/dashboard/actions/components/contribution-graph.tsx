@@ -17,7 +17,9 @@ const ContributionGraph = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["contribution-stats"],
     queryFn: async () => await getContributionStats(),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
@@ -53,6 +55,13 @@ const ContributionGraph = () => {
             data={data.contributions}
             colorScheme={theme === "dark" ? "dark" : "light"}
             theme={contributionTheme}
+            tooltips={{
+              activity: {
+                text: (activity) =>
+                  `${activity.count} contribution${activity.count === 1 ? "" : "s"} on ${activity.date}`,
+                withArrow: true,
+              },
+            }}
           />
         </div>
       </div>
