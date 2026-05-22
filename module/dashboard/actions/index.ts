@@ -35,11 +35,15 @@ export async function getContributionStats() {
         week.contributionDays.map(
           (
             day: GitHubContributionCalendar["weeks"][number]["contributionDays"][number],
-          ) => ({
-            date: day.date,
-            count: day.contributionCount,
-            level: Math.min(4, Math.floor(day.contributionCount / 3)),
-          }),
+          ) => {
+            const count = day.contributionCount;
+
+            return {
+              date: day.date,
+              count,
+              level: count === 0 ? 0 : Math.min(4, count),
+            };
+          },
         ),
     );
 
