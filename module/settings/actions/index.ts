@@ -1,92 +1,10 @@
 "use server";
 
-import prisma from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import prisma from "@/lib/db";
+import { deleteWebhook } from "@/module/github/lib/github";
 import { revalidatePath } from "next/cache";
-import { createWebhook, getRepositories } from "@/module/github/lib/github";
-
-type GithubRepository = {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  html_url: string;
-  stargazers_count: number;
-  language: string | null;
-  topics?: string[];
-};
-
-export const fetchRepositories = async (
-  page: number = 1,
-  perPage: number = 10,
-) => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
-  const githubRepos = await getRepositories(page, perPage);
-  const dbRepos = await prisma.repository.findMany({
-    where: {
-      userId: session.user.id,
-    },
-  });
-
-  const connectedRepoIds = new Set(dbRepos.map((repo) => repo.githubId));
-
-  return githubRepos.map((repo: GithubRepository) => ({
-    ...repo,
-    isConnected: connectedRepoIds.has(BigInt(repo.id)),
-  }));
-};
-
-export const connectRepository = async (
-  owner: string,
-  repo: string,
-  githubId: number,
-) => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
-
-  //TODO: CHECK IF USERS CAN CONNECT MORE REPO
-
-  const webhook = await createWebhook(owner, repo);
-
-  if (webhook) {
-    await prisma.repository.upsert({
-      where: {
-        githubId: BigInt(githubId),
-      },
-      update: {
-        name: repo,
-        owner,
-        fullName: `${owner}/${repo}`,
-        url: `https://github.com/${owner}/${repo}`,
-        userId: session.user.id,
-      },
-      create: {
-        githubId: BigInt(githubId),
-        name: repo,
-        owner,
-        fullName: `${owner}/${repo}`,
-        url: `https://github.com/${owner}/${repo}`,
-        userId: session.user.id,
-      },
-    });
-  }
-  //TODO: INCREMENT REPOSITORY COUNT FOR USAGE TRACKING
-
-  //TODO: TRIGGER REPOSITORY INDEXING FOR RAG (FIRE AND FORGET)
-
-  return webhook;
-};
+import { headers } from "next/headers";
 
 export async function getUserProfile() {
   try {
@@ -159,8 +77,11 @@ export async function getConnectedRepositories() {
     if (!session?.user) {
       throw new Error("Unauthorized");
     }
-    const repositories = await prisma.repository.findMany({
-      where: { userId: session.user.id },
+
+    return await prisma.repository.findMany({
+      where: {
+        userId: session.user.id,
+      },
       select: {
         id: true,
         name: true,
@@ -172,8 +93,6 @@ export async function getConnectedRepositories() {
         createdAt: "desc",
       },
     });
-
-    return repositories;
   } catch (error) {
     console.error("Error fetching connected repositories:", error);
     return [];
@@ -190,7 +109,7 @@ export async function disconnectRepository(repositoryId: string) {
       throw new Error("Unauthorized");
     }
 
-    const repository = await prisma.repository.findUnique({
+    const repository = await prisma.repository.findFirst({
       where: {
         id: repositoryId,
         userId: session.user.id,
@@ -198,28 +117,29 @@ export async function disconnectRepository(repositoryId: string) {
     });
 
     if (!repository) {
-      throw new Error("Repository not found");
+      return { success: false, error: "Repository not found" };
     }
 
     await deleteWebhook(repository.owner, repository.name);
 
     await prisma.repository.delete({
       where: {
-        id: repositoryId,
-        userId: session.user.id,
+        id: repository.id,
       },
     });
 
     revalidatePath("/dashboard/settings", "page");
-    revalidatePath("/dashboard/repository", "page");
-    return { success: true };
+
+    return {
+      success: true,
+    };
   } catch (error) {
     console.error("Error disconnecting repository:", error);
     return { success: false, error: "Failed to disconnect repository" };
   }
 }
 
-export async function disconnectAllRepository() {
+export async function disconnectAllRepositories() {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -236,9 +156,9 @@ export async function disconnectAllRepository() {
     });
 
     await Promise.all(
-      repositories.map(async (repo) => {
-        await deleteWebhook(repo.owner, repo.name);
-      }),
+      repositories.map((repository) =>
+        deleteWebhook(repository.owner, repository.name),
+      ),
     );
 
     const result = await prisma.repository.deleteMany({
@@ -247,11 +167,14 @@ export async function disconnectAllRepository() {
       },
     });
 
-    revalidatePath("/dashboard/settings");
-    revalidatePath("/dashboard/repository");
-    return { success: true, count: result.count };
+    revalidatePath("/dashboard/settings", "page");
+
+    return {
+      success: true,
+      count: result.count,
+    };
   } catch (error) {
-    console.error("Error disconnecting all repositories:", error);
+    console.error("Error disconnecting repositories:", error);
     return { success: false, error: "Failed to disconnect repositories" };
   }
 }
