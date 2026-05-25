@@ -262,10 +262,15 @@ export async function postReviewComment(
 ) {
   const octokit = new Octokit({ auth: token });
 
-  await octokit.rest.issues.createComment({
+  const { data } = await octokit.rest.issues.createComment({
     owner,
     repo,
     issue_number: prNumber,
     body: `## AI Code Review\n\n${review}\n\n---\n*Powered by CodeHorse*`,
   });
+
+  return {
+    id: data.id,
+    url: data.html_url,
+  };
 }

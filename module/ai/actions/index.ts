@@ -4,12 +4,23 @@ import { inngest } from "@/inngest/client";
 import prisma from "@/lib/db";
 import { getPullRequestDiff } from "@/module/github/lib/github";
 
+type ReviewPullRequestOptions = {
+  action?: string;
+  merged?: boolean;
+  prUrl?: string;
+};
+
 export async function reviewPullRequest(
   owner: string,
   repo: string,
   prNumber: number,
+  options: ReviewPullRequestOptions = {},
 ) {
   try {
+    if (!Number.isInteger(prNumber)) {
+      throw new Error("Invalid pull request number");
+    }
+
     const repository = await prisma.repository.findFirst({
       where: {
         owner,
@@ -49,10 +60,21 @@ export async function reviewPullRequest(
         repo,
         prNumber,
         userId: repository.user.id,
+        action: options.action ?? "manual",
+        merged: options.merged ?? false,
+        prUrl: options.prUrl ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`,
       },
     });
 
-    return { success: true, message: "Review Queued" };
+    return {
+      success: true,
+      message: "Review queued",
+      owner,
+      repo,
+      prNumber,
+      action: options.action ?? "manual",
+      merged: options.merged ?? false,
+    };
   } catch (error) {
     try {
       const repository = await prisma.repository.findFirst({

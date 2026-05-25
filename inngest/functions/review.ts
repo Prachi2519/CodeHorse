@@ -15,9 +15,10 @@ export const generateReview = inngest.createFunction(
     triggers: [{ event: "pr.review.requested" }],
   },
   async ({ event, step }) => {
-    const { owner, repo, prNumber, userId } = event.data;
+    const { owner, repo, prNumber, userId, action, merged, prUrl } = event.data;
+    const prNumberValue = Number(prNumber);
 
-    if (!owner || !repo || !prNumber || !userId) {
+    if (!owner || !repo || !Number.isInteger(prNumberValue) || !userId) {
       return {
         success: false,
         skipped: true,
@@ -26,7 +27,7 @@ export const generateReview = inngest.createFunction(
       };
     }
 
-    const { diff, title, description, token } = await step.run(
+    const { diff, title, description } = await step.run(
       "fetch-pr-data",
       async () => {
         const account = await prisma.account.findFirst({
@@ -44,16 +45,28 @@ export const generateReview = inngest.createFunction(
           account.accessToken,
           owner,
           repo,
-          prNumber,
+          prNumberValue,
         );
 
-        return { ...data, token: account.accessToken };
+        return {
+          ...data,
+          diffLength: data.diff.length,
+          owner,
+          repo,
+          prNumber: prNumberValue,
+        };
       },
     );
 
-    const context = await step.run("retrieve-context", async () => {
+    const { context } = await step.run("retrieve-context", async () => {
       const query = `${title}\n${description}`;
-      return await retrieveContext(query, `${owner}/${repo}`);
+      const context = await retrieveContext(query, `${owner}/${repo}`);
+
+      return {
+        context,
+        contextCount: context.length,
+        queryLength: query.length,
+      };
     });
 
     const review = await step.run("generate-ai-review", async () => {
@@ -89,12 +102,34 @@ Format your response in markdown.`;
       return text;
     });
 
-    await step.run("post-comment", async () => {
-      await postReviewComment(token, owner, repo, prNumber, review);
-      return { posted: true };
+    const comment = await step.run("post-comment", async () => {
+      const account = await prisma.account.findFirst({
+        where: {
+          userId,
+          providerId: "github",
+        },
+      });
+
+      if (!account?.accessToken) {
+        throw new Error("No GitHub access token found");
+      }
+
+      const comment = await postReviewComment(
+        account.accessToken,
+        owner,
+        repo,
+        prNumberValue,
+        review,
+      );
+
+      return {
+        posted: true,
+        commentId: comment.id,
+        commentUrl: comment.url,
+      };
     });
 
-    await step.run("save-review", async () => {
+    const savedReview = await step.run("save-review", async () => {
       const repository = await prisma.repository.findFirst({
         where: {
           owner,
@@ -106,26 +141,37 @@ Format your response in markdown.`;
         throw new Error(`Repository ${owner}/${repo} not found`);
       }
 
-      await prisma.review.create({
+      const savedReview = await prisma.review.create({
         data: {
           repositoryId: repository.id,
-          prNumber,
+          prNumber: prNumberValue,
           prTitle: title,
-          prUrl: `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+          prUrl:
+            typeof prUrl === "string"
+              ? prUrl
+              : `https://github.com/${owner}/${repo}/pull/${prNumberValue}`,
           review,
           status: "completed",
         },
       });
 
-      return { saved: true };
+      return {
+        saved: true,
+        reviewId: savedReview.id,
+        prUrl: savedReview.prUrl,
+      };
     });
 
     return {
       success: true,
       owner,
       repo,
-      prNumber,
+      prNumber: prNumberValue,
+      action: typeof action === "string" ? action : "unknown",
+      merged: Boolean(merged),
       reviewed: true,
+      commentUrl: comment.commentUrl,
+      reviewId: savedReview.reviewId,
     };
   },
 );
