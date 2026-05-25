@@ -14,9 +14,11 @@ export async function POST(req: NextRequest) {
     if (event === "pull_request") {
       const action = body.action;
       const fullName = body.repository?.full_name;
-      const prNumber = body.pull_request?.number ?? body.number;
+      const prNumber = Number(body.pull_request?.number ?? body.number);
+      const isMergedPullRequest =
+        action === "closed" && body.pull_request?.merged === true;
 
-      if (!fullName || !prNumber) {
+      if (!fullName || !Number.isInteger(prNumber)) {
         return NextResponse.json(
           { error: "Invalid pull_request payload" },
           { status: 400 },
@@ -25,14 +27,26 @@ export async function POST(req: NextRequest) {
 
       const [owner, repoName] = fullName.split("/");
 
+      if (!owner || !repoName) {
+        return NextResponse.json(
+          { error: "Invalid repository full_name" },
+          { status: 400 },
+        );
+      }
+
       const shouldReview =
         action === "opened" ||
         action === "synchronize" ||
         action === "reopened" ||
-        action === "ready_for_review";
+        action === "ready_for_review" ||
+        isMergedPullRequest;
 
       if (shouldReview) {
-        const result = await reviewPullRequest(owner, repoName, prNumber);
+        const result = await reviewPullRequest(owner, repoName, prNumber, {
+          action,
+          merged: isMergedPullRequest,
+          prUrl: body.pull_request?.html_url,
+        });
         console.log(
           `Review queued for ${fullName} #${prNumber}:`,
           JSON.stringify(result),
@@ -46,7 +60,11 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { message: `Ignored pull_request action: ${action}` },
+        {
+          action,
+          merged: body.pull_request?.merged === true,
+          message: `Ignored pull_request action: ${action}`,
+        },
         { status: 200 },
       );
     }
