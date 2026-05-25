@@ -36,7 +36,7 @@ const navigationItems = [
   },
   {
     title: "Reviews",
-    url: "/dashboard/reviews",
+    url: "/dashboard/review",
     icon: BookOpen,
   },
   {
