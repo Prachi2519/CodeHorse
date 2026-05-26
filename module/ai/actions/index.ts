@@ -8,6 +8,10 @@ type ReviewPullRequestOptions = {
   action?: string;
   merged?: boolean;
   prUrl?: string;
+  headSha?: string;
+  baseSha?: string;
+  deliveryId?: string;
+  idempotencyKey?: string;
 };
 
 export async function reviewPullRequest(
@@ -50,19 +54,60 @@ export async function reviewPullRequest(
       throw new Error("No Github access token found for repository owner");
     }
     const token = githubAccount.accessToken;
+    const prUrl =
+      options.prUrl ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`;
+    const action = options.action ?? "manual";
+    const mode =
+      action === "closed" && options.merged ? "merge_recap" : "active";
+    const headSha = options.headSha ?? "unknown";
+    const baseSha = options.baseSha ?? "unknown";
+    const deliveryId = options.deliveryId ?? "unknown";
+    const idempotencyKey =
+      options.idempotencyKey ??
+      [deliveryId, owner, repo, prNumber, action, headSha].join(":");
 
     await getPullRequestDiff(token, owner, repo, prNumber);
+    const queuedReview = await prisma.review.create({
+      data: {
+        repositoryId: repository.id,
+        prNumber,
+        prTitle: `${mode === "merge_recap" ? "[Merge Recap]" : "[Queued]"} PR #${prNumber}`,
+        prUrl,
+        review: [
+          "<!-- CODEHORSE_RUN -->",
+          `status=queued`,
+          `mode=${mode}`,
+          `action=${action}`,
+          `owner=${owner}`,
+          `repo=${repo}`,
+          `prNumber=${prNumber}`,
+          `headSha=${headSha}`,
+          `baseSha=${baseSha}`,
+          `deliveryId=${deliveryId}`,
+          `idempotency=${idempotencyKey}`,
+          `queuedAt=${new Date().toISOString()}`,
+        ].join("\n"),
+        status: "queued",
+      },
+    });
 
-    await inngest.send({
+    const eventResponse = await inngest.send({
       name: "pr.review.requested",
       data: {
         owner,
         repo,
         prNumber,
         userId: repository.user.id,
-        action: options.action ?? "manual",
+        action,
         merged: options.merged ?? false,
-        prUrl: options.prUrl ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+        mode,
+        prUrl,
+        headSha,
+        baseSha,
+        deliveryId,
+        idempotencyKey,
+        queuedReviewId: queuedReview.id,
+        triggeredAt: new Date().toISOString(),
       },
     });
 
@@ -72,8 +117,15 @@ export async function reviewPullRequest(
       owner,
       repo,
       prNumber,
-      action: options.action ?? "manual",
+      action,
       merged: options.merged ?? false,
+      mode,
+      idempotencyKey,
+      queuedReviewId: queuedReview.id,
+      eventId:
+        Array.isArray(eventResponse) && eventResponse.length > 0
+          ? eventResponse[0]?.ids?.[0]
+          : undefined,
     };
   } catch (error) {
     try {
@@ -81,13 +133,35 @@ export async function reviewPullRequest(
         where: { owner, name: repo },
       });
       if (repository) {
+        const action = options.action ?? "manual";
+        const mode =
+          action === "closed" && options.merged ? "merge_recap" : "active";
+        const headSha = options.headSha ?? "unknown";
+        const deliveryId = options.deliveryId ?? "unknown";
+        const idempotencyKey =
+          options.idempotencyKey ??
+          [deliveryId, owner, repo, prNumber, action, headSha].join(":");
+
         await prisma.review.create({
           data: {
             repositoryId: repository.id,
             prNumber,
-            prTitle: "Failed to fetch PR",
-            prUrl: `https://github.com/${owner}/${repo}/pull/${prNumber}`,
-            review: `Error: ${error instanceof Error ? error.message : "Unknown Error"}`,
+            prTitle: `[Failed] PR #${prNumber}`,
+            prUrl:
+              options.prUrl ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+            review: [
+              "<!-- CODEHORSE_RUN -->",
+              `status=failed`,
+              `mode=${mode}`,
+              `action=${action}`,
+              `owner=${owner}`,
+              `repo=${repo}`,
+              `prNumber=${prNumber}`,
+              `headSha=${headSha}`,
+              `deliveryId=${deliveryId}`,
+              `idempotency=${idempotencyKey}`,
+              `error=${error instanceof Error ? error.message : "Unknown Error"}`,
+            ].join("\n"),
             status: "failed",
           },
         });

@@ -53,17 +53,15 @@ const MainPage = () => {
   } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => await getDashboardStats(),
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: false,
   });
 
   const { data: monthlyActivity, isLoading: isLoadingActivity } = useQuery({
     queryKey: ["monthly-activity"],
     queryFn: async () => await getMonthlyActivity(),
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: false,
   });
 
   const totals = useMemo(() => {

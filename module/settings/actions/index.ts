@@ -57,6 +57,9 @@ export async function updateUserProfile(data: { name: string; email: string }) {
     });
 
     revalidatePath("/dashboard/settings", "page");
+    revalidatePath("/dashboard/repository", "page");
+    revalidatePath("/dashboard/reviews", "page");
+    revalidatePath("/dashboard/review", "page");
 
     return {
       success: true,
@@ -129,6 +132,9 @@ export async function disconnectRepository(repositoryId: string) {
     });
 
     revalidatePath("/dashboard/settings", "page");
+    revalidatePath("/dashboard/repository", "page");
+    revalidatePath("/dashboard/reviews", "page");
+    revalidatePath("/dashboard/review", "page");
 
     return {
       success: true,
@@ -168,6 +174,9 @@ export async function disconnectAllRepositories() {
     });
 
     revalidatePath("/dashboard/settings", "page");
+    revalidatePath("/dashboard/repository", "page");
+    revalidatePath("/dashboard/reviews", "page");
+    revalidatePath("/dashboard/review", "page");
 
     return {
       success: true,

@@ -58,28 +58,6 @@ export async function getContributionStats() {
   }
 }
 
-type SampleReview = {
-  createdAt: Date;
-};
-
-const generateSampleReviews = () => {
-  const sampleReviews: SampleReview[] = [];
-  const now = new Date();
-
-  // Generate random reviews over the past 6 months
-  for (let i = 0; i < 45; i++) {
-    const randomDaysAgo = Math.floor(Math.random() * 180); // Random day in last 6 months
-    const reviewDate = new Date(now);
-    reviewDate.setDate(reviewDate.getDate() - randomDaysAgo);
-
-    sampleReviews.push({
-      createdAt: reviewDate,
-    });
-  }
-
-  return sampleReviews;
-};
-
 export async function getDashboardStats() {
   try {
     const session = await auth.api.getSession({
@@ -112,8 +90,13 @@ export async function getDashboardStats() {
     });
     const totalPRs = prs.total_count;
 
-    // TODO: COUNT AI REVIEWS FROM DATABASE after adding a Review model.
-    const totalReviews = 0;
+    const totalReviews = await prisma.review.count({
+      where: {
+        repository: {
+          userId: session.user.id,
+        },
+      },
+    });
 
     return {
       totalCommits,
@@ -191,8 +174,22 @@ export async function getMonthlyActivity() {
       },
     );
 
-    // TODO: REVIEWS'S REAL DATA
-    const reviews = generateSampleReviews();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const reviews = await prisma.review.findMany({
+      where: {
+        repository: {
+          userId: session.user.id,
+        },
+        createdAt: {
+          gte: sixMonthsAgo,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    });
 
     reviews.forEach((review) => {
       const monthKey = monthNames[review.createdAt.getMonth()];
@@ -202,9 +199,6 @@ export async function getMonthlyActivity() {
     });
 
     // TODO: PR'S REAL DATA
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
     const { data: prs } = await octokit.rest.search.issuesAndPullRequests({
       q: `author:${user.login} type:pr created:>=${sixMonthsAgo.toISOString().split("T")[0]}`,
       per_page: 100,

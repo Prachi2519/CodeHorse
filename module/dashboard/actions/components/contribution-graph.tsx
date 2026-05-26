@@ -17,9 +17,8 @@ const ContributionGraph = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["contribution-stats"],
     queryFn: async () => await getContributionStats(),
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {

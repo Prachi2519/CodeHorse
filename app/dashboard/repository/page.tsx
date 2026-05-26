@@ -30,6 +30,7 @@ interface Repository {
 
 const RepositoryPage = () => {
   const [search, setSearch] = useState("");
+  const [connectingRepoId, setConnectingRepoId] = useState<number | null>(null);
   const {
     data,
     isLoading,
@@ -58,11 +59,14 @@ const RepositoryPage = () => {
 
   const handleConnect = (repository: Repository) => {
     const [owner, repo] = repository.full_name.split("/");
+    setConnectingRepoId(repository.id);
 
     connectMutation.mutate({
       owner,
       repo,
       githubId: repository.id,
+    }, {
+      onSettled: () => setConnectingRepoId(null),
     });
   };
 
@@ -151,12 +155,17 @@ const RepositoryPage = () => {
 
                   <Button
                     disabled={
-                      repository.isConnected || connectMutation.isPending
+                      repository.isConnected ||
+                      connectingRepoId === repository.id
                     }
                     onClick={() => handleConnect(repository)}
                     size="sm"
                   >
-                    {repository.isConnected ? "Connected" : "Connect"}
+                    {repository.isConnected
+                      ? "Connected"
+                      : connectingRepoId === repository.id
+                        ? "Connecting..."
+                        : "Connect"}
                   </Button>
                 </div>
               </CardContent>
