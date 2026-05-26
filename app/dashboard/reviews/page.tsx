@@ -7,12 +7,14 @@ import {
   Clock3,
   GitPullRequest,
   MessageSquareText,
+  PlayCircle,
   RefreshCw,
   Search,
   ShieldAlert,
   Sparkles,
+  XCircle,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,22 +27,34 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getReviews,
   getReviewStats,
+  requestManualReview,
   type ReviewListItem,
   type ReviewStatus,
 } from "@/module/review/actions";
+import { toast } from "sonner";
 
-const statusOptions: ReviewStatus[] = ["all", "completed", "failed"];
+const statusOptions: ReviewStatus[] = [
+  "all",
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "skipped",
+];
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
 const ReviewsPage = () => {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ReviewStatus>("all");
+  const [manualPrInput, setManualPrInput] = useState("");
 
   const {
     data: reviews,
@@ -50,21 +64,36 @@ const ReviewsPage = () => {
   } = useQuery({
     queryKey: ["reviews", search, status],
     queryFn: async () => await getReviews({ search, status }),
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 15,
+    refetchOnWindowFocus: false,
   });
 
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ["review-stats"],
     queryFn: async () => await getReviewStats(),
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 15,
+    refetchOnWindowFocus: false,
   });
 
   const reviewList = reviews ?? [];
   const latestReview = reviewList[0];
+  const latestReviewBody = latestReview ? getVisibleReviewBody(latestReview.review) : "";
+
+  const manualReviewMutation = useMutation({
+    mutationFn: async () => await requestManualReview(manualPrInput),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success("Manual review queued.");
+        setManualPrInput("");
+        queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      } else {
+        toast.error(result.message || "Could not queue manual review.");
+      }
+    },
+    onError: () => {
+      toast.error("Could not queue manual review.");
+    },
+  });
 
   const statCards = useMemo(
     () => [
@@ -88,6 +117,13 @@ const ReviewsPage = () => {
         icon: ShieldAlert,
         tone: "text-rose-500",
         surface: "bg-rose-500/10 ring-rose-500/20",
+      },
+      {
+        label: "In Progress",
+        value: stats?.running ?? 0,
+        icon: PlayCircle,
+        tone: "text-amber-500",
+        surface: "bg-amber-500/10 ring-amber-500/20",
       },
       {
         label: "Repos Reviewed",
@@ -147,7 +183,7 @@ const ReviewsPage = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-5">
           {statCards.map((item) => (
             <div
               className="rounded-lg border bg-background p-4 shadow-sm"
@@ -187,6 +223,28 @@ const ReviewsPage = () => {
           </Button>
         ))}
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Trigger Manual Review</CardTitle>
+          <CardDescription>
+            Paste a GitHub PR URL or `owner/repo#number` to queue a manual run.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            onChange={(event) => setManualPrInput(event.target.value)}
+            placeholder="https://github.com/owner/repo/pull/42"
+            value={manualPrInput}
+          />
+          <Button
+            disabled={manualReviewMutation.isPending || !manualPrInput.trim()}
+            onClick={() => manualReviewMutation.mutate()}
+          >
+            {manualReviewMutation.isPending ? "Queueing..." : "Queue Review"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <ReviewSkeleton />
@@ -248,9 +306,72 @@ const ReviewsPage = () => {
                   </div>
 
                   <article className="max-h-[560px] overflow-auto rounded-lg border bg-background p-5">
-                    <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
-                      {latestReview.review}
-                    </pre>
+                    <Tabs defaultValue="overview">
+                      <TabsList className="mb-3 grid w-full grid-cols-4">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="inline">Inline Findings</TabsTrigger>
+                        <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                        <TabsTrigger value="raw">Raw Output</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="overview">
+                        <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+                          {latestReviewBody}
+                        </pre>
+                      </TabsContent>
+                      <TabsContent value="inline">
+                        {latestReview.commentUrl ? (
+                          <Button asChild size="sm" variant="outline">
+                            <a
+                              href={latestReview.commentUrl}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Open GitHub review comments
+                              <ArrowUpRight className="size-4" />
+                            </a>
+                          </Button>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            No inline comments were posted for this run.
+                          </p>
+                        )}
+                      </TabsContent>
+                      <TabsContent value="timeline">
+                        <div className="space-y-2 text-sm">
+                          <p>
+                            <span className="font-medium">Status:</span>{" "}
+                            {latestReview.status}
+                          </p>
+                          <p>
+                            <span className="font-medium">Mode:</span>{" "}
+                            {latestReview.mode}
+                          </p>
+                          <p>
+                            <span className="font-medium">Action:</span>{" "}
+                            {latestReview.action}
+                          </p>
+                          <p>
+                            <span className="font-medium">Created:</span>{" "}
+                            {dateFormatter.format(new Date(latestReview.createdAt))}
+                          </p>
+                          <p>
+                            <span className="font-medium">Updated:</span>{" "}
+                            {dateFormatter.format(new Date(latestReview.updatedAt))}
+                          </p>
+                          {latestReview.errorReason ? (
+                            <p className="text-rose-500">
+                              <span className="font-medium">Error:</span>{" "}
+                              {latestReview.errorReason}
+                            </p>
+                          ) : null}
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="raw">
+                        <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-muted-foreground">
+                          {latestReview.review}
+                        </pre>
+                      </TabsContent>
+                    </Tabs>
                   </article>
                 </>
               ) : null}
@@ -296,6 +417,24 @@ const ReviewRow = ({ review }: { review: ReviewListItem }) => {
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
+  if (status === "queued") {
+    return (
+      <Badge variant="secondary">
+        <Clock3 className="size-3" />
+        Queued
+      </Badge>
+    );
+  }
+
+  if (status === "running") {
+    return (
+      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-300">
+        <PlayCircle className="size-3" />
+        Running
+      </Badge>
+    );
+  }
+
   if (status === "completed") {
     return (
       <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
@@ -308,7 +447,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   if (status === "failed") {
     return (
       <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-300">
-        <ShieldAlert className="size-3" />
+        <XCircle className="size-3" />
         Failed
       </Badge>
     );
@@ -320,6 +459,36 @@ const StatusBadge = ({ status }: { status: string }) => {
       {status}
     </Badge>
   );
+};
+
+const getVisibleReviewBody = (reviewBody: string) => {
+  if (!reviewBody.includes("<!-- CODEHORSE_RUN -->")) {
+    return reviewBody;
+  }
+
+  const lines = reviewBody.split("\n");
+  const cleaned: string[] = [];
+  let metaSection = false;
+
+  for (const line of lines) {
+    if (line.includes("<!-- CODEHORSE_RUN -->")) {
+      metaSection = true;
+      continue;
+    }
+
+    if (metaSection && line.trim() === "") {
+      metaSection = false;
+      continue;
+    }
+
+    if (metaSection && line.includes("=") && !line.includes("##")) {
+      continue;
+    }
+
+    cleaned.push(line);
+  }
+
+  return cleaned.join("\n").trim();
 };
 
 const ReviewSkeleton = () => {

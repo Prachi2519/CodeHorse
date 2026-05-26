@@ -33,6 +33,7 @@ import { useState } from "react";
 export function RepositoryList() {
   const queryClient = useQueryClient();
   const [disconnectAllOpen, setDisconnectAllOpen] = useState(false);
+  const [deletingRepoId, setDeletingRepoId] = useState<string | null>(null);
 
   const { data: repositories, isLoading } = useQuery({
     queryKey: ["connected-repositories"],
@@ -107,9 +108,14 @@ export function RepositoryList() {
               open={disconnectAllOpen}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
+                <Button
+                  disabled={disconnectAllMutation.isPending}
+                  variant="destructive"
+                >
                   <Trash2 className="mr-2 size-4" />
-                  Disconnect All
+                  {disconnectAllMutation.isPending
+                    ? "Disconnecting All..."
+                    : "Disconnect All"}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -131,7 +137,7 @@ export function RepositoryList() {
                     onClick={() => disconnectAllMutation.mutate()}
                   >
                     {disconnectAllMutation.isPending
-                      ? "Disconnecting..."
+                      ? "Disconnecting All..."
                       : "Disconnect All"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -176,12 +182,20 @@ export function RepositoryList() {
                     </a>
                   </Button>
                   <Button
-                    disabled={disconnectMutation.isPending}
-                    onClick={() => disconnectMutation.mutate(repo.id)}
+                    disabled={deletingRepoId === repo.id}
+                    onClick={() => {
+                      setDeletingRepoId(repo.id);
+                      disconnectMutation.mutate(repo.id, {
+                        onSettled: () => setDeletingRepoId(null),
+                      });
+                    }}
                     size="sm"
                     variant="destructive"
                   >
                     <Trash2 className="size-4" />
+                    <span className="ml-2">
+                      {deletingRepoId === repo.id ? "Deleting..." : "Delete"}
+                    </span>
                   </Button>
                 </div>
               </div>

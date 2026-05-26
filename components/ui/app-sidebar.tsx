@@ -49,6 +49,11 @@ const navigationItems = [
     url: "/dashboard/settings",
     icon: Settings,
   },
+  {
+    title: "Diagnostics",
+    url: "/dashboard/diagnostics",
+    icon: Settings,
+  },
 ];
 
 const GitHubMark = ({ className }: { className?: string }) => (

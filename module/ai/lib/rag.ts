@@ -26,8 +26,23 @@ export async function indexCodebase(
   const pineconeIndex = getPineconeIndex();
   const vectors = [];
   const failedFiles: string[] = [];
+  const skipPatterns = [
+    /^node_modules\//,
+    /^dist\//,
+    /^build\//,
+    /^\.next\//,
+    /^coverage\//,
+    /^vendor\//,
+    /\.lock$/,
+    /\.min\./,
+    /\.(png|jpg|jpeg|gif|svg|ico|pdf|zip|tar|gz|map)$/i,
+  ];
 
-  for (const file of files) {
+  const sourceFiles = files.filter(
+    (file) => !skipPatterns.some((pattern) => pattern.test(file.path)),
+  );
+
+  for (const file of sourceFiles) {
     const content = `File: ${file.path}\n\n${file.content}`;
     const truncatedContent = content.slice(0, 8000);
 
@@ -49,7 +64,7 @@ export async function indexCodebase(
     }
   }
 
-  if (files.length > 0 && vectors.length === 0) {
+  if (sourceFiles.length > 0 && vectors.length === 0) {
     throw new Error("Embedding failed for every file. No vectors were upserted.");
   }
 
@@ -65,6 +80,7 @@ export async function indexCodebase(
   console.log("indexing complete");
 
   return {
+    sourceFiles: sourceFiles.length,
     embeddedFiles: vectors.length,
     failedFiles: failedFiles.length,
     upsertedRecords: vectors.length,

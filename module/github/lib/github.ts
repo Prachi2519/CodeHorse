@@ -125,6 +125,9 @@ export const createWebhook = async (owner: string, repo: string) => {
     config: {
       url: webhookUrl,
       content_type: "json",
+      ...(process.env.GITHUB_WEBHOOK_SECRET
+        ? { secret: process.env.GITHUB_WEBHOOK_SECRET }
+        : {}),
     },
     events: ["pull_request"],
   });
@@ -272,5 +275,61 @@ export async function postReviewComment(
   return {
     id: data.id,
     url: data.html_url,
+  };
+}
+
+export type PullRequestReviewInlineComment = {
+  path: string;
+  line: number;
+  body: string;
+};
+
+export async function getPullRequestFiles(
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+) {
+  const octokit = new Octokit({ auth: token });
+  const files = await octokit.paginate(octokit.rest.pulls.listFiles, {
+    owner,
+    repo,
+    pull_number: prNumber,
+    per_page: 100,
+  });
+  return files;
+}
+
+export async function postPullRequestReview(
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  body: string,
+  comments: PullRequestReviewInlineComment[] = [],
+) {
+  const octokit = new Octokit({ auth: token });
+
+  if (comments.length === 0) {
+    return postReviewComment(token, owner, repo, prNumber, body);
+  }
+
+  const { data } = await octokit.rest.pulls.createReview({
+    owner,
+    repo,
+    pull_number: prNumber,
+    event: "COMMENT",
+    body,
+    comments: comments.map((comment) => ({
+      path: comment.path,
+      line: comment.line,
+      side: "RIGHT",
+      body: comment.body,
+    })),
+  });
+
+  return {
+    id: data.id,
+    url: data.html_url ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`,
   };
 }
