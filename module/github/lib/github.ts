@@ -110,6 +110,12 @@ export const createWebhook = async (owner: string, repo: string) => {
   }
 
   const webhookUrl = `${appBaseUrl.replace(/\/$/, "")}/api/webhooks/github`;
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
+  const webhookConfig = {
+    url: webhookUrl,
+    content_type: "json" as const,
+    ...(webhookSecret ? { secret: webhookSecret } : {}),
+  };
 
   const { data: hooks } = await octokit.rest.repos.listWebhooks({
     owner,
@@ -117,19 +123,22 @@ export const createWebhook = async (owner: string, repo: string) => {
   });
   const existingHook = hooks.find((hook) => hook.config.url === webhookUrl);
   if (existingHook) {
-    return existingHook;
+    const { data: updatedHook } = await octokit.rest.repos.updateWebhook({
+      owner,
+      repo,
+      hook_id: existingHook.id,
+      config: webhookConfig,
+      events: ["pull_request"],
+      active: true,
+    });
+    return updatedHook;
   }
   const { data } = await octokit.rest.repos.createWebhook({
     owner,
     repo,
-    config: {
-      url: webhookUrl,
-      content_type: "json",
-      ...(process.env.GITHUB_WEBHOOK_SECRET
-        ? { secret: process.env.GITHUB_WEBHOOK_SECRET }
-        : {}),
-    },
+    config: webhookConfig,
     events: ["pull_request"],
+    active: true,
   });
 
   return data;
