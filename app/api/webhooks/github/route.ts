@@ -38,6 +38,13 @@ const verifySignature = (payload: string, signature: string | null) => {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.GITHUB_WEBHOOK_SECRET) {
+      return NextResponse.json(
+        { error: "GITHUB_WEBHOOK_SECRET is not configured" },
+        { status: 503 },
+      );
+    }
+
     const signature = req.headers.get("x-hub-signature-256");
     const event = req.headers.get("x-github-event");
     const deliveryId = req.headers.get("x-github-delivery");
