@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import {
   createWebhook,
+  getRepositoryAccess,
   getRepositories,
 } from "@/module/github/lib/github";
 import { inngest } from "@/inngest/client";
@@ -18,6 +19,9 @@ type GithubRepository = {
   stargazers_count: number;
   language: string | null;
   topics?: string[];
+  permissions?: {
+    admin?: boolean;
+  };
 };
 
 export const fetchRepositories = async (
@@ -41,6 +45,7 @@ export const fetchRepositories = async (
 
   return githubRepos.map((repo: GithubRepository) => ({
     ...repo,
+    canManageWebhooks: Boolean(repo.permissions?.admin),
     isConnected: connectedRepoIds.has(BigInt(repo.id)),
   }));
 };
@@ -60,46 +65,76 @@ export const connectRepository = async (
 
   //TODO: CHECK IF USERS CAN CONNECT MORE REPO
 
-  const webhook = await createWebhook(owner, repo);
-
-  if (webhook) {
-    await prisma.repository.upsert({
-      where: {
-        githubId: BigInt(githubId),
-      },
-      update: {
-        name: repo,
-        owner,
-        fullName: `${owner}/${repo}`,
-        url: `https://github.com/${owner}/${repo}`,
-        userId: session.user.id,
-      },
-      create: {
-        githubId: BigInt(githubId),
-        name: repo,
-        owner,
-        fullName: `${owner}/${repo}`,
-        url: `https://github.com/${owner}/${repo}`,
-        userId: session.user.id,
-      },
-    });
-  }
-  //TODO: INCREMENT REPOSITORY COUNT FOR USAGE TRACKING
-
-  //TODO: TRIGGER REPOSITORY INDEXING FOR RAG (FIRE AND FORGET)
-
   try {
-    await inngest.send({
-      name: "repository.connected",
-      data: {
-        owner,
-        repo,
-        userId: session.user.id,
-      },
-    });
-  } catch (error) {
-    console.error("Failed to trigger repository indexing:", error);
-  }
+    const repositoryAccess = await getRepositoryAccess(owner, repo);
 
-  return webhook;
+    if (!repositoryAccess || repositoryAccess.githubId !== githubId) {
+      return {
+        success: false,
+        message: "GitHub could not verify access to this repository.",
+      };
+    }
+
+    if (!repositoryAccess.canManageWebhooks) {
+      return {
+        success: false,
+        message:
+          "You need admin access to this GitHub repository before CodeHorse can connect webhooks.",
+      };
+    }
+
+    const webhook = await createWebhook(owner, repo);
+
+    if (webhook) {
+      await prisma.repository.upsert({
+        where: {
+          githubId: BigInt(githubId),
+        },
+        update: {
+          name: repo,
+          owner,
+          fullName: `${owner}/${repo}`,
+          url: `https://github.com/${owner}/${repo}`,
+          userId: session.user.id,
+        },
+        create: {
+          githubId: BigInt(githubId),
+          name: repo,
+          owner,
+          fullName: `${owner}/${repo}`,
+          url: `https://github.com/${owner}/${repo}`,
+          userId: session.user.id,
+        },
+      });
+    }
+    //TODO: INCREMENT REPOSITORY COUNT FOR USAGE TRACKING
+
+    //TODO: TRIGGER REPOSITORY INDEXING FOR RAG (FIRE AND FORGET)
+
+    try {
+      await inngest.send({
+        name: "repository.connected",
+        data: {
+          owner,
+          repo,
+          userId: session.user.id,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to trigger repository indexing:", error);
+    }
+
+    return {
+      success: true,
+      message: "Repository connected successfully",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to connect repository.",
+    };
+  }
 };

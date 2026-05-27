@@ -7,12 +7,24 @@ import { useTheme } from "next-themes";
 import { getContributionStats } from "@/module/dashboard/actions";
 
 const contributionTheme = {
-  light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
-  dark: ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"],
+  light: [
+    "var(--muted)",
+    "color-mix(in oklab, var(--success) 20%, var(--background))",
+    "color-mix(in oklab, var(--success) 45%, var(--background))",
+    "color-mix(in oklab, var(--success) 70%, var(--background))",
+    "var(--success)",
+  ],
+  dark: [
+    "var(--muted)",
+    "color-mix(in oklab, var(--success) 20%, var(--background))",
+    "color-mix(in oklab, var(--success) 45%, var(--background))",
+    "color-mix(in oklab, var(--success) 70%, var(--background))",
+    "var(--success)",
+  ],
 };
 
 const ContributionGraph = () => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contribution-stats"],
@@ -52,7 +64,7 @@ const ContributionGraph = () => {
         <div className="flex min-w-max justify-center px-4">
           <ActivityCalendar
             data={data.contributions}
-            colorScheme={theme === "dark" ? "dark" : "light"}
+            colorScheme={resolvedTheme === "dark" ? "dark" : "light"}
             theme={contributionTheme}
             tooltips={{
               activity: {

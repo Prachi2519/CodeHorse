@@ -1,33 +1,47 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   ArrowUpRight,
+  Bot,
   CheckCircle2,
+  CircleDot,
   Clock3,
+  ExternalLink,
+  Eye,
+  GitBranch,
   GitPullRequest,
+  LayoutList,
+  Loader2,
   MessageSquareText,
+  PanelTop,
   PlayCircle,
   RefreshCw,
+  Rocket,
   Search,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import {
   getReviews,
   getReviewStats,
@@ -35,26 +49,54 @@ import {
   type ReviewListItem,
   type ReviewStatus,
 } from "@/module/review/actions";
-import { toast } from "sonner";
 
-const statusOptions: ReviewStatus[] = [
-  "all",
-  "queued",
-  "running",
-  "completed",
-  "failed",
-  "skipped",
+const statusOptions: { value: ReviewStatus; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "completed", label: "Completed" },
+  { value: "failed", label: "Failed" },
+  { value: "running", label: "In Progress" },
 ];
+
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
+type ReviewViewMode = "list" | "compact";
+type ManualReviewFeedback =
+  | { tone: "neutral"; title: string; message: string }
+  | { tone: "success"; title: string; message: string }
+  | { tone: "warning"; title: string; message: string }
+  | { tone: "danger"; title: string; message: string };
+
+const GitHubMark = ({ className }: { className?: string }) => (
+  <svg
+    aria-hidden="true"
+    className={className}
+    fill="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.29 9.41 7.86 10.94.58.1.79-.25.79-.56v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.18 1.18A11.1 11.1 0 0 1 12 6.06c.98 0 1.96.13 2.88.4 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.27 5.68.42.36.79 1.07.79 2.16v3.13c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+  </svg>
+);
+
 const ReviewsPage = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ReviewStatus>("all");
+  const [repositoryFilter, setRepositoryFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ReviewViewMode>("list");
   const [manualPrInput, setManualPrInput] = useState("");
+  const [manualTouched, setManualTouched] = useState(false);
+  const [manualFeedback, setManualFeedback] =
+    useState<ManualReviewFeedback | null>(null);
+  const manualInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: session } = useSession();
+  const accountName = session?.user?.name || "Prachi2519";
+  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
+  const accountInitial = accountName.charAt(0).toUpperCase();
 
   const {
     data: reviews,
@@ -75,335 +117,718 @@ const ReviewsPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  const reviewList = reviews ?? [];
+  const reviewList = useMemo(() => {
+    const items = reviews ?? [];
+
+    if (repositoryFilter === "all") {
+      return items;
+    }
+
+    return items.filter((review) => review.repositoryId === repositoryFilter);
+  }, [repositoryFilter, reviews]);
+
   const latestReview = reviewList[0];
-  const latestReviewBody = latestReview ? getVisibleReviewBody(latestReview.review) : "";
+  const latestReviewBody = latestReview
+    ? getVisibleReviewBody(latestReview.review)
+    : "";
+
+  const repositoryOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+
+    for (const review of reviews ?? []) {
+      seen.set(review.repositoryId, review.repositoryFullName);
+    }
+
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  }, [reviews]);
 
   const manualReviewMutation = useMutation({
-    mutationFn: async () => await requestManualReview(manualPrInput),
+    mutationFn: async (input: string) => await requestManualReview(input),
     onSuccess: (result) => {
       if (result.success) {
+        const target =
+          "owner" in result && "repo" in result && "prNumber" in result
+            ? `${result.owner}/${result.repo}#${result.prNumber}`
+            : "the selected pull request";
+
         toast.success("Manual review queued.");
         setManualPrInput("");
+        setManualTouched(false);
+        setManualFeedback({
+          tone: "success",
+          title: "Queued successfully",
+          message: `CodeHorse queued an AI review for ${target}.`,
+        });
         queryClient.invalidateQueries({ queryKey: ["reviews"] });
-      } else {
-        toast.error(result.message || "Could not queue manual review.");
+        queryClient.invalidateQueries({ queryKey: ["review-stats"] });
+        return;
       }
+
+      const message = result.message || "Could not queue manual review.";
+      const repositoryIssue =
+        message.toLowerCase().includes("not found") ||
+        message.toLowerCase().includes("reconnect") ||
+        message.toLowerCase().includes("repository");
+
+      setManualFeedback({
+        tone: repositoryIssue ? "warning" : "danger",
+        title: repositoryIssue ? "Repository not connected" : "Review not queued",
+        message,
+      });
+      toast.error(message);
     },
     onError: () => {
-      toast.error("Could not queue manual review.");
+      const message = "Could not queue manual review.";
+      setManualFeedback({
+        tone: "danger",
+        title: "Review not queued",
+        message,
+      });
+      toast.error(message);
     },
   });
+
+  const manualValidation = getManualReviewValidation(manualPrInput);
+  const activeManualFeedback =
+    manualFeedback ?? getManualHelperFeedback(manualValidation, manualTouched);
 
   const statCards = useMemo(
     () => [
       {
         label: "Total Reviews",
         value: stats?.total ?? 0,
+        helper: "All generated review runs",
         icon: MessageSquareText,
-        tone: "text-violet-500",
-        surface: "bg-violet-500/10 ring-violet-500/20",
+        tone: "text-primary",
+        surface: "border-primary/20 bg-primary/10",
       },
       {
         label: "Completed",
         value: stats?.completed ?? 0,
+        helper: "Reviews with feedback posted",
         icon: CheckCircle2,
-        tone: "text-emerald-500",
-        surface: "bg-emerald-500/10 ring-emerald-500/20",
+        tone: "text-success",
+        surface: "border-success/20 bg-success/10",
       },
       {
         label: "Failed",
         value: stats?.failed ?? 0,
+        helper: "Runs requiring attention",
         icon: ShieldAlert,
-        tone: "text-rose-500",
-        surface: "bg-rose-500/10 ring-rose-500/20",
+        tone: "text-danger",
+        surface: "border-danger/20 bg-danger/10",
       },
       {
         label: "In Progress",
         value: stats?.running ?? 0,
+        helper: "Queued or actively running",
         icon: PlayCircle,
-        tone: "text-amber-500",
-        surface: "bg-amber-500/10 ring-amber-500/20",
+        tone: "text-warning",
+        surface: "border-warning/20 bg-warning/10",
       },
       {
         label: "Repos Reviewed",
         value: stats?.repositories ?? 0,
+        helper: "Repositories with review history",
         icon: GitPullRequest,
-        tone: "text-sky-500",
-        surface: "bg-sky-500/10 ring-sky-500/20",
+        tone: "text-chart-3",
+        surface: "border-chart-3/20 bg-chart-3/10",
       },
     ],
     [stats],
   );
 
+  const triggerManualReview = () => {
+    setManualTouched(true);
+    setManualFeedback(null);
+
+    if (manualValidation === "empty") {
+      setManualFeedback({
+        tone: "warning",
+        title: "Empty input",
+        message: "Paste a GitHub PR URL or owner/repo#number before queueing.",
+      });
+      manualInputRef.current?.focus();
+      return;
+    }
+
+    if (manualValidation === "invalid") {
+      setManualFeedback({
+        tone: "danger",
+        title: "Invalid PR format",
+        message:
+          "Use a GitHub PR URL like https://github.com/owner/repo/pull/42 or owner/repo#42.",
+      });
+      manualInputRef.current?.focus();
+      return;
+    }
+
+    manualReviewMutation.mutate(manualPrInput.trim());
+  };
+
+  const focusManualReview = () => {
+    manualInputRef.current?.focus();
+  };
+
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="border-b bg-muted/20 px-5 py-5">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  className="border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-300"
-                  variant="outline"
-                >
-                  <Sparkles className="size-3" />
-                  AI review cockpit
-                </Badge>
-                <Badge variant="outline">Pull request intelligence</Badge>
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  Reviews
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Inspect every AI review generated from GitHub pull requests,
-                  trace failures, and jump back to the original PR.
-                </p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
+      <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative w-full sm:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search reviews"
-                  value={search}
-                />
-              </div>
-              <Button disabled={isFetching} onClick={() => refetch()} variant="outline">
-                <RefreshCw
-                  className={`size-4 ${isFetching ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+        <ReviewHeader
+          accountEmail={accountEmail}
+          accountInitial={accountInitial}
+          accountName={accountName}
+          isFetching={isFetching}
+          onSync={() => void refetch()}
+          onTriggerReview={focusManualReview}
+        />
 
-        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {statCards.map((item) => (
-            <div
-              className="rounded-lg border bg-background p-4 shadow-sm"
+            <ReviewMetricCard
+              isLoading={isStatsLoading}
+              item={item}
               key={item.label}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className="mt-2 text-3xl font-semibold tracking-tight">
-                    {isStatsLoading ? (
-                      <Skeleton className="h-9 w-16" />
-                    ) : (
-                      item.value
-                    )}
-                  </p>
-                </div>
-                <div className={`rounded-lg p-2 ring-1 ${item.surface}`}>
-                  <item.icon className={`size-4 ${item.tone}`} />
-                </div>
-              </div>
-            </div>
+            />
           ))}
-        </div>
-      </section>
-
-      <div className="flex flex-wrap gap-2">
-        {statusOptions.map((option) => (
-          <Button
-            key={option}
-            onClick={() => setStatus(option)}
-            size="sm"
-            variant={status === option ? "default" : "outline"}
-          >
-            {option === "all"
-              ? "All"
-              : option.charAt(0).toUpperCase() + option.slice(1)}
-          </Button>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Trigger Manual Review</CardTitle>
-          <CardDescription>
-            Paste a GitHub PR URL or `owner/repo#number` to queue a manual run.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            onChange={(event) => setManualPrInput(event.target.value)}
-            placeholder="https://github.com/owner/repo/pull/42"
-            value={manualPrInput}
-          />
-          <Button
-            disabled={manualReviewMutation.isPending || !manualPrInput.trim()}
-            onClick={() => manualReviewMutation.mutate()}
-          >
-            {manualReviewMutation.isPending ? "Queueing..." : "Queue Review"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {isLoading ? (
-        <ReviewSkeleton />
-      ) : reviewList.length === 0 ? (
-        <EmptyReviews />
-      ) : (
-        <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-          <Card className="shadow-sm">
-            <CardHeader className="border-b">
-              <CardTitle>Review Queue</CardTitle>
-              <CardDescription>
-                {reviewList.length} review{reviewList.length === 1 ? "" : "s"}{" "}
-                matching your filters.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="max-h-[720px] space-y-3 overflow-auto p-3">
-              {reviewList.map((review) => (
-                <ReviewRow key={review.id} review={review} />
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardHeader className="border-b">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <CardTitle>Latest Review</CardTitle>
-                  <CardDescription>
-                    A focused preview of the newest generated review.
-                  </CardDescription>
-                </div>
-                {latestReview ? <StatusBadge status={latestReview.status} /> : null}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 p-5">
-              {latestReview ? (
-                <>
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm text-muted-foreground">
-                          {latestReview.repositoryFullName}
-                        </p>
-                        <h2 className="mt-1 line-clamp-2 text-xl font-semibold tracking-tight">
-                          #{latestReview.prNumber} {latestReview.prTitle}
-                        </h2>
-                      </div>
-                      <Button asChild size="sm" variant="outline">
-                        <a
-                          href={latestReview.prUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Open PR
-                          <ArrowUpRight className="size-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <article className="max-h-[560px] overflow-auto rounded-lg border bg-background p-5">
-                    <Tabs defaultValue="overview">
-                      <TabsList className="mb-3 grid w-full grid-cols-4">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="inline">Inline Findings</TabsTrigger>
-                        <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                        <TabsTrigger value="raw">Raw Output</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="overview">
-                        <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
-                          {latestReviewBody}
-                        </pre>
-                      </TabsContent>
-                      <TabsContent value="inline">
-                        {latestReview.commentUrl ? (
-                          <Button asChild size="sm" variant="outline">
-                            <a
-                              href={latestReview.commentUrl}
-                              rel="noreferrer"
-                              target="_blank"
-                            >
-                              Open GitHub review comments
-                              <ArrowUpRight className="size-4" />
-                            </a>
-                          </Button>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            No inline comments were posted for this run.
-                          </p>
-                        )}
-                      </TabsContent>
-                      <TabsContent value="timeline">
-                        <div className="space-y-2 text-sm">
-                          <p>
-                            <span className="font-medium">Status:</span>{" "}
-                            {latestReview.status}
-                          </p>
-                          <p>
-                            <span className="font-medium">Mode:</span>{" "}
-                            {latestReview.mode}
-                          </p>
-                          <p>
-                            <span className="font-medium">Action:</span>{" "}
-                            {latestReview.action}
-                          </p>
-                          <p>
-                            <span className="font-medium">Created:</span>{" "}
-                            {dateFormatter.format(new Date(latestReview.createdAt))}
-                          </p>
-                          <p>
-                            <span className="font-medium">Updated:</span>{" "}
-                            {dateFormatter.format(new Date(latestReview.updatedAt))}
-                          </p>
-                          {latestReview.errorReason ? (
-                            <p className="text-rose-500">
-                              <span className="font-medium">Error:</span>{" "}
-                              {latestReview.errorReason}
-                            </p>
-                          ) : null}
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="raw">
-                        <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-muted-foreground">
-                          {latestReview.review}
-                        </pre>
-                      </TabsContent>
-                    </Tabs>
-                  </article>
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
         </section>
-      )}
+
+        <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+          <div className="min-w-0 space-y-5">
+            <ManualReviewPanel
+              feedback={activeManualFeedback}
+              inputRef={manualInputRef}
+              isPending={manualReviewMutation.isPending}
+              value={manualPrInput}
+              validation={manualValidation}
+              onChange={(value) => {
+                setManualPrInput(value);
+                setManualFeedback(null);
+              }}
+              onSubmit={triggerManualReview}
+              onTouched={() => setManualTouched(true)}
+            />
+
+            <ReviewControls
+              repositoryFilter={repositoryFilter}
+              repositoryOptions={repositoryOptions}
+              search={search}
+              searchInputRef={searchInputRef}
+              status={status}
+              viewMode={viewMode}
+              onRepositoryChange={setRepositoryFilter}
+              onSearchChange={setSearch}
+              onStatusChange={(value) => setStatus(value as ReviewStatus)}
+              onViewModeChange={setViewMode}
+            />
+
+            {isLoading ? (
+              <ReviewSkeleton viewMode={viewMode} />
+            ) : reviewList.length === 0 ? (
+              <EmptyReviews
+                onConnectRepositoryHref="/dashboard/repository"
+                onTriggerReview={focusManualReview}
+              />
+            ) : (
+              <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <ReviewQueue
+                  reviews={reviewList}
+                  viewMode={viewMode}
+                />
+                <LatestReview
+                  latestReview={latestReview}
+                  latestReviewBody={latestReviewBody}
+                />
+              </section>
+            )}
+
+            <WorkflowSection />
+            <ExampleReviewPreview />
+          </div>
+
+          <aside className="space-y-4">
+            <ReviewIntelligencePanel stats={stats} />
+            <ReviewSystemPanel />
+          </aside>
+        </section>
+      </div>
     </div>
   );
 };
 
-const ReviewRow = ({ review }: { review: ReviewListItem }) => {
+const ReviewHeader = ({
+  accountEmail,
+  accountInitial,
+  accountName,
+  isFetching,
+  onSync,
+  onTriggerReview,
+}: {
+  accountEmail: string;
+  accountInitial: string;
+  accountName: string;
+  isFetching: boolean;
+  onSync: () => void;
+  onTriggerReview: () => void;
+}) => {
   return (
-    <div className="rounded-lg border bg-background p-4 transition-colors hover:bg-muted/30">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={review.status} />
-            <Badge variant="outline">{review.repositoryFullName}</Badge>
+    <header className="codehorse-panel rounded-lg p-4">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
+            <Bot className="size-5" />
           </div>
           <div>
-            <h3 className="line-clamp-2 font-semibold">
-              #{review.prNumber} {review.prTitle}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border-primary/20 bg-primary/10 text-primary">
+                <Sparkles className="size-3" />
+                Pull request intelligence
+              </Badge>
+              <Badge className="border-success/20 bg-success/10 text-success">
+                <span className="size-1.5 animate-pulse rounded-full bg-success" />
+                All systems operational
+              </Badge>
+            </div>
+            <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+              AI Review Cockpit
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+              Inspect AI-generated GitHub pull request reviews, trace failures,
+              and jump back to the original PR.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            disabled={isFetching}
+            onClick={onSync}
+            type="button"
+            variant="outline"
+          >
+            <RefreshCw className={cn("size-4", isFetching && "animate-spin")} />
+            Sync GitHub
+          </Button>
+          <Button
+            className="h-10 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
+            onClick={onTriggerReview}
+            type="button"
+          >
+            <Zap className="size-4" />
+            Trigger Review
+          </Button>
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+              {accountInitial || "P"}
+            </div>
+            <div className="hidden min-w-0 sm:block">
+              <p className="truncate text-sm font-medium text-foreground">
+                @{accountName}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {accountEmail}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const ReviewMetricCard = ({
+  isLoading,
+  item,
+}: {
+  isLoading: boolean;
+  item: {
+    label: string;
+    value: number;
+    helper: string;
+    icon: LucideIcon;
+    tone: string;
+    surface: string;
+  };
+}) => {
+  return (
+    <article className="codehorse-panel group rounded-lg p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">{item.label}</p>
+          <div className="mt-2 min-h-9 text-3xl font-semibold tracking-tight text-foreground">
+            {isLoading ? <Skeleton className="h-9 w-16" /> : item.value}
+          </div>
+        </div>
+        <div className={cn("rounded-lg border p-2", item.surface)}>
+          <item.icon className={cn("size-4", item.tone)} />
+        </div>
+      </div>
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        {item.helper}
+      </p>
+    </article>
+  );
+};
+
+const ManualReviewPanel = ({
+  feedback,
+  inputRef,
+  isPending,
+  value,
+  validation,
+  onChange,
+  onSubmit,
+  onTouched,
+}: {
+  feedback: ManualReviewFeedback;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  isPending: boolean;
+  value: string;
+  validation: "empty" | "invalid" | "valid";
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onTouched: () => void;
+}) => {
+  return (
+    <section className="codehorse-panel-strong overflow-hidden rounded-lg p-5">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-xl">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+            <Sparkles className="size-3.5" />
+            Manual review queue
+          </div>
+          <h2 className="mt-4 text-2xl font-semibold tracking-normal text-foreground">
+            Trigger Manual Review
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Paste a GitHub pull request URL or use owner/repo#number to queue an
+            AI review run.
+          </p>
+        </div>
+
+        <div className="flex w-full flex-col gap-3 lg:max-w-xl">
+          <div className="relative">
+            <GitPullRequest className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-invalid={validation === "invalid"}
+              className="h-12 rounded-lg border-border bg-background/70 pl-9 text-sm"
+              onBlur={onTouched}
+              onChange={(event) => onChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onSubmit();
+                }
+              }}
+              placeholder="https://github.com/owner/repo/pull/42"
+              ref={inputRef}
+              value={value}
+            />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              className="h-10 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+              disabled={isPending}
+              onClick={onSubmit}
+              type="button"
+            >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Rocket className="size-4" />
+              )}
+              {isPending ? "Queueing..." : "Queue Review"}
+            </Button>
+            <Button
+              asChild
+              className="h-10 border-border bg-card/70 text-foreground hover:bg-muted"
+              variant="outline"
+            >
+              <Link href="/dashboard/repository">
+                View connected repositories
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Example:{" "}
+            <button
+              className="font-mono text-primary underline-offset-4 hover:underline"
+              onClick={() => onChange("Prachi2519/CodeHorse#12")}
+              type="button"
+            >
+              Prachi2519/CodeHorse#12
+            </button>
+          </p>
+          <ManualFeedback feedback={feedback} />
+          <p className="text-xs text-muted-foreground">
+            Manual reviews run against connected repositories only.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ManualFeedback = ({
+  feedback,
+}: {
+  feedback: ManualReviewFeedback;
+}) => {
+  const toneClasses = {
+    neutral: "border-border bg-muted/40 text-muted-foreground",
+    success: "border-success/20 bg-success/10 text-success",
+    warning: "border-warning/20 bg-warning/10 text-warning",
+    danger: "border-danger/20 bg-danger/10 text-danger",
+  };
+
+  const Icon =
+    feedback.tone === "success"
+      ? CheckCircle2
+      : feedback.tone === "warning"
+        ? ShieldAlert
+        : feedback.tone === "danger"
+          ? XCircle
+          : CircleDot;
+
+  return (
+    <div className={cn("rounded-lg border px-3 py-2", toneClasses[feedback.tone])}>
+      <div className="flex items-start gap-2">
+        <Icon className="mt-0.5 size-4 shrink-0" />
+        <div>
+          <p className="text-xs font-semibold">{feedback.title}</p>
+          <p className="mt-0.5 text-xs leading-5 opacity-90">
+            {feedback.message}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ReviewControls = ({
+  repositoryFilter,
+  repositoryOptions,
+  search,
+  searchInputRef,
+  status,
+  viewMode,
+  onRepositoryChange,
+  onSearchChange,
+  onStatusChange,
+  onViewModeChange,
+}: {
+  repositoryFilter: string;
+  repositoryOptions: { id: string; name: string }[];
+  search: string;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  status: ReviewStatus;
+  viewMode: ReviewViewMode;
+  onRepositoryChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onViewModeChange: (value: ReviewViewMode) => void;
+}) => {
+  return (
+    <section className="codehorse-panel rounded-lg p-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-10 rounded-lg border-border bg-background/60 pl-9 text-sm"
+            placeholder="Search reviews..."
+            ref={searchInputRef}
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <ControlSelect
+            icon={ShieldCheck}
+            label="Status"
+            value={status}
+            onChange={onStatusChange}
+          >
+            {statusOptions.map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </ControlSelect>
+
+          <ControlSelect
+            icon={GitBranch}
+            label="Repository"
+            value={repositoryFilter}
+            onChange={onRepositoryChange}
+          >
+            <NativeSelectOption value="all">All repositories</NativeSelectOption>
+            {repositoryOptions.map((repository) => (
+              <NativeSelectOption key={repository.id} value={repository.id}>
+                {repository.name}
+              </NativeSelectOption>
+            ))}
+          </ControlSelect>
+
+          <ControlSelect
+            icon={Clock3}
+            label="Sort"
+            value="newest"
+            onChange={() => undefined}
+          >
+            <NativeSelectOption value="newest">Newest first</NativeSelectOption>
+          </ControlSelect>
+
+          <div className="grid h-10 grid-cols-2 gap-1 rounded-lg border border-border bg-muted/60 p-1">
+            <ViewButton
+              active={viewMode === "list"}
+              icon={LayoutList}
+              label="List"
+              onClick={() => onViewModeChange("list")}
+            />
+            <ViewButton
+              active={viewMode === "compact"}
+              icon={PanelTop}
+              label="Compact"
+              onClick={() => onViewModeChange("compact")}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ControlSelect = ({
+  children,
+  icon: Icon,
+  label,
+  value,
+  onChange,
+}: {
+  children: React.ReactNode;
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  return (
+    <div className="flex h-10 min-w-[11rem] items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-sm text-muted-foreground">
+      <Icon className="size-4" />
+      <NativeSelect
+        aria-label={label}
+        className="w-full"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {children}
+      </NativeSelect>
+    </div>
+  );
+};
+
+const ViewButton = ({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      aria-pressed={active}
+      className={cn(
+        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+        active && "bg-card text-foreground shadow-sm",
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </button>
+  );
+};
+
+const ReviewQueue = ({
+  reviews,
+  viewMode,
+}: {
+  reviews: ReviewListItem[];
+  viewMode: ReviewViewMode;
+}) => {
+  return (
+    <section className="codehorse-panel rounded-lg p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Review Queue
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {reviews.length} review{reviews.length === 1 ? "" : "s"} matching
+            your filters.
+          </p>
+        </div>
+        <Badge className="w-fit border-primary/20 bg-primary/10 text-primary">
+          Newest first
+        </Badge>
+      </div>
+
+      <div
+        className={cn(
+          "mt-4 space-y-3 overflow-auto",
+          viewMode === "list" ? "max-h-[720px]" : "max-h-[560px]",
+        )}
+      >
+        {reviews.map((review) => (
+          <ReviewRow key={review.id} review={review} viewMode={viewMode} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const ReviewRow = ({
+  review,
+  viewMode,
+}: {
+  review: ReviewListItem;
+  viewMode: ReviewViewMode;
+}) => {
+  return (
+    <article className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={review.status} />
+            <Badge className="border-border bg-muted/60 text-muted-foreground">
+              {review.repositoryFullName}
+            </Badge>
+            <Badge className="border-primary/20 bg-primary/10 text-primary">
+              PR #{review.prNumber}
+            </Badge>
+          </div>
+          <div>
+            <h3 className="line-clamp-2 font-semibold text-foreground">
+              {review.prTitle}
             </h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <Clock3 className="size-3" />
               {dateFormatter.format(new Date(review.createdAt))}
             </p>
           </div>
-          <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-            {review.review}
-          </p>
+          {viewMode === "list" ? (
+            <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+              {getVisibleReviewBody(review.review) || "No output recorded yet."}
+            </p>
+          ) : null}
         </div>
         <Button asChild size="icon" variant="ghost">
           <a href={review.prUrl} rel="noreferrer" target="_blank">
@@ -412,14 +837,433 @@ const ReviewRow = ({ review }: { review: ReviewListItem }) => {
           </a>
         </Button>
       </div>
+    </article>
+  );
+};
+
+const LatestReview = ({
+  latestReview,
+  latestReviewBody,
+}: {
+  latestReview?: ReviewListItem;
+  latestReviewBody: string;
+}) => {
+  return (
+    <section className="codehorse-panel rounded-lg p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Latest Review
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            A focused preview of the newest generated review.
+          </p>
+        </div>
+        {latestReview ? <StatusBadge status={latestReview.status} /> : null}
+      </div>
+
+      <div className="mt-4">
+        {latestReview ? (
+          <>
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm text-muted-foreground">
+                    {latestReview.repositoryFullName}
+                  </p>
+                  <h3 className="mt-1 line-clamp-2 text-xl font-semibold tracking-tight text-foreground">
+                    #{latestReview.prNumber} {latestReview.prTitle}
+                  </h3>
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <a href={latestReview.prUrl} rel="noreferrer" target="_blank">
+                    Open PR
+                    <ArrowUpRight className="size-4" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            <article className="mt-4 max-h-[560px] overflow-auto rounded-lg border border-border bg-background/70 p-5">
+              <Tabs defaultValue="overview">
+                <TabsList className="mb-3 grid w-full grid-cols-4">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="inline">Findings</TabsTrigger>
+                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  <TabsTrigger value="raw">Raw</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview">
+                  <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+                    {latestReviewBody}
+                  </pre>
+                </TabsContent>
+                <TabsContent value="inline">
+                  {latestReview.commentUrl ? (
+                    <Button asChild size="sm" variant="outline">
+                      <a
+                        href={latestReview.commentUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Open GitHub review comments
+                        <ArrowUpRight className="size-4" />
+                      </a>
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No inline comments were posted for this run.
+                    </p>
+                  )}
+                </TabsContent>
+                <TabsContent value="timeline">
+                  <div className="space-y-2 text-sm">
+                    <TimelineRow label="Status" value={latestReview.status} />
+                    <TimelineRow label="Mode" value={latestReview.mode} />
+                    <TimelineRow label="Action" value={latestReview.action} />
+                    <TimelineRow
+                      label="Created"
+                      value={dateFormatter.format(new Date(latestReview.createdAt))}
+                    />
+                    <TimelineRow
+                      label="Updated"
+                      value={dateFormatter.format(new Date(latestReview.updatedAt))}
+                    />
+                    {latestReview.errorReason ? (
+                      <p className="text-danger">
+                        <span className="font-medium">Error:</span>{" "}
+                        {latestReview.errorReason}
+                      </p>
+                    ) : null}
+                  </div>
+                </TabsContent>
+                <TabsContent value="raw">
+                  <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-muted-foreground">
+                    {latestReview.review}
+                  </pre>
+                </TabsContent>
+              </Tabs>
+            </article>
+          </>
+        ) : null}
+      </div>
+    </section>
+  );
+};
+
+const TimelineRow = ({ label, value }: { label: string; value: string }) => {
+  return (
+    <p>
+      <span className="font-medium">{label}:</span> {value}
+    </p>
+  );
+};
+
+const EmptyReviews = ({
+  onConnectRepositoryHref,
+  onTriggerReview,
+}: {
+  onConnectRepositoryHref: string;
+  onTriggerReview: () => void;
+}) => {
+  return (
+    <section className="codehorse-panel-strong overflow-hidden rounded-lg p-8 text-center">
+      <div className="mx-auto max-w-2xl">
+        <ReviewEmptyIllustration />
+        <h2 className="mt-8 text-2xl font-semibold tracking-normal text-foreground">
+          No AI reviews yet
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+          Open or update a pull request on a connected repository, or trigger a
+          manual review to generate your first AI-powered code review.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button
+            className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+            onClick={onTriggerReview}
+            type="button"
+          >
+            <Sparkles className="size-4" />
+            Trigger Manual Review
+          </Button>
+          <Button
+            asChild
+            className="border-border bg-card/70 text-foreground hover:bg-muted"
+            variant="outline"
+          >
+            <Link href={onConnectRepositoryHref}>
+              Connect Repository
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ReviewEmptyIllustration = () => {
+  return (
+    <div className="relative mx-auto h-64 max-w-lg">
+      <div className="absolute inset-x-12 top-6 h-44 rounded-full bg-primary/10 blur-3xl" />
+      <div className="codehorse-panel relative mx-auto flex h-56 max-w-md flex-col rounded-lg p-4 text-left">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <GitPullRequest className="size-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">
+              Pull request #42
+            </span>
+          </div>
+          <Badge className="border-primary/20 bg-primary/10 text-primary">
+            Preview
+          </Badge>
+        </div>
+        <div className="mt-4 space-y-3">
+          <div className="rounded-lg border border-border bg-muted/40 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <GitHubMark className="size-4" />
+              Prachi2519/CodeHorse
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              AI review will summarize risks, quality issues, and actionable
+              fixes.
+            </p>
+          </div>
+          <div className="ml-10 rounded-lg border border-success/20 bg-success/10 p-3 text-success">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <Sparkles className="size-3.5" />
+              CodeHorse review comment
+            </div>
+            <div className="mt-3 space-y-1.5">
+              <div className="h-1.5 w-3/4 rounded-full bg-success/40" />
+              <div className="h-1.5 w-1/2 rounded-full bg-success/30" />
+            </div>
+          </div>
+        </div>
+        <div className="absolute -right-5 -top-5 flex size-12 animate-pulse items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xl">
+          <Bot className="size-5" />
+        </div>
+      </div>
     </div>
   );
 };
 
+const WorkflowSection = () => {
+  const steps = [
+    {
+      title: "Connect a repository",
+      description: "Install the review webhook on a repository with admin access.",
+      icon: GitBranch,
+    },
+    {
+      title: "Open or update a pull request",
+      description: "CodeHorse listens for PR activity from connected repos.",
+      icon: GitPullRequest,
+    },
+    {
+      title: "Generate actionable feedback",
+      description: "The AI review engine posts quality, risk, and maintainability notes.",
+      icon: Sparkles,
+    },
+  ];
+
+  return (
+    <section className="codehorse-panel rounded-lg p-5">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          How reviews work
+        </p>
+        <h2 className="mt-2 text-lg font-semibold text-foreground">
+          From pull request to feedback in three steps
+        </h2>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <div
+            className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
+            key={step.title}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="rounded-lg border border-border bg-muted/60 p-2 text-primary">
+                <step.icon className="size-4" />
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Step {index + 1}
+              </span>
+            </div>
+            <h3 className="mt-4 font-semibold text-foreground">{step.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {step.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const ReviewIntelligencePanel = ({
+  stats,
+}: {
+  stats?: {
+    total: number;
+    completed: number;
+    failed: number;
+    running: number;
+    repositories: number;
+  };
+}) => {
+  const signals = [
+    {
+      label: "AI review engine ready",
+      value: "Ready",
+      icon: Bot,
+      tone: "text-success",
+    },
+    {
+      label: `${stats?.total ?? 0} reviews generated`,
+      value: "Tracked",
+      icon: MessageSquareText,
+      tone: "text-primary",
+    },
+    {
+      label:
+        (stats?.failed ?? 0) === 0
+          ? "No failed runs detected"
+          : `${stats?.failed ?? 0} failed runs detected`,
+      value: (stats?.failed ?? 0) === 0 ? "Clean" : "Review",
+      icon: ShieldAlert,
+      tone: (stats?.failed ?? 0) === 0 ? "text-success" : "text-danger",
+    },
+    {
+      label: "Manual review queue available",
+      value: "Online",
+      icon: Rocket,
+      tone: "text-warning",
+    },
+    {
+      label: "GitHub sync active",
+      value: "Live",
+      icon: GitHubMark,
+      tone: "text-chart-3",
+    },
+  ];
+
+  return (
+    <section className="codehorse-panel rounded-lg p-5">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          Review Intelligence
+        </p>
+        <h2 className="mt-2 text-lg font-semibold text-foreground">
+          Engine signals
+        </h2>
+      </div>
+      <div className="mt-5 space-y-3">
+        {signals.map((signal) => (
+          <div
+            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3"
+            key={signal.label}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="rounded-lg border border-border bg-card p-2">
+                <signal.icon className={cn("size-4", signal.tone)} />
+              </div>
+              <p className="min-w-0 text-sm leading-5 text-muted-foreground">
+                {signal.label}
+              </p>
+            </div>
+            <span className="shrink-0 text-xs font-medium text-foreground">
+              {signal.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const ReviewSystemPanel = () => {
+  return (
+    <section className="codehorse-panel rounded-lg p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Review pipeline
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Token-backed analytics enabled
+          </p>
+        </div>
+        <span className="flex size-10 items-center justify-center rounded-lg bg-success/10 text-success ring-1 ring-success/20">
+          <ShieldCheck className="size-5" />
+        </span>
+      </div>
+      <div className="mt-4 h-2 rounded-full bg-muted">
+        <div className="h-full w-full rounded-full bg-gradient-to-r from-success via-primary to-chart-3" />
+      </div>
+      <div className="mt-3 flex items-center gap-2 text-xs text-success">
+        <span className="size-1.5 animate-pulse rounded-full bg-success" />
+        All systems operational
+      </div>
+    </section>
+  );
+};
+
+const ExampleReviewPreview = () => {
+  return (
+    <section className="codehorse-panel rounded-lg p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Example preview
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-foreground">
+            Future review row design
+          </h2>
+        </div>
+        <Badge className="w-fit border-border bg-muted/60 text-muted-foreground">
+          Not real data
+        </Badge>
+      </div>
+      <div className="mt-5 rounded-lg border border-border bg-card p-4 opacity-80">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status="completed" />
+              <Badge className="border-warning/20 bg-warning/10 text-warning">
+                Medium risk
+              </Badge>
+              <Badge className="border-primary/20 bg-primary/10 text-primary">
+                6 findings
+              </Badge>
+            </div>
+            <h3 className="mt-3 truncate font-semibold text-foreground">
+              Harden auth callback error handling
+            </h3>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              Prachi2519/CodeHorse · PR #42 · 38s duration
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled size="sm" variant="outline">
+              <ExternalLink className="size-3.5" />
+              GitHub PR
+            </Button>
+            <Button disabled size="sm">
+              <Eye className="size-3.5" />
+              Open Review
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const StatusBadge = ({ status }: { status: string }) => {
-  if (status === "queued") {
+  if (status === "queued" || status === "pending") {
     return (
-      <Badge variant="secondary">
+      <Badge className="border-primary/20 bg-primary/10 text-primary">
         <Clock3 className="size-3" />
         Queued
       </Badge>
@@ -428,7 +1272,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   if (status === "running") {
     return (
-      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-300">
+      <Badge className="border-warning/20 bg-warning/10 text-warning">
         <PlayCircle className="size-3" />
         Running
       </Badge>
@@ -437,7 +1281,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   if (status === "completed") {
     return (
-      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+      <Badge className="border-success/20 bg-success/10 text-success">
         <CheckCircle2 className="size-3" />
         Completed
       </Badge>
@@ -446,7 +1290,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   if (status === "failed") {
     return (
-      <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-300">
+      <Badge className="border-danger/20 bg-danger/10 text-danger">
         <XCircle className="size-3" />
         Failed
       </Badge>
@@ -454,7 +1298,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   }
 
   return (
-    <Badge variant="secondary">
+    <Badge className="border-border bg-muted/60 text-muted-foreground">
       <Clock3 className="size-3" />
       {status}
     </Badge>
@@ -491,52 +1335,77 @@ const getVisibleReviewBody = (reviewBody: string) => {
   return cleaned.join("\n").trim();
 };
 
-const ReviewSkeleton = () => {
-  return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton className="h-32 w-full rounded-lg" key={index} />
-          ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[520px] w-full rounded-lg" />
-        </CardContent>
-      </Card>
-    </div>
+const getManualReviewValidation = (value: string) => {
+  const input = value.trim();
+
+  if (!input) {
+    return "empty" as const;
+  }
+
+  const urlMatch = /^https?:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/i.test(
+    input,
   );
+  const shortMatch = /^[^/\s]+\/[^#\s]+#\d+$/.test(input);
+
+  return urlMatch || shortMatch ? ("valid" as const) : ("invalid" as const);
 };
 
-const EmptyReviews = () => {
+const getManualHelperFeedback = (
+  validation: "empty" | "invalid" | "valid",
+  touched: boolean,
+): ManualReviewFeedback => {
+  if (validation === "valid") {
+    return {
+      tone: "success",
+      title: "Valid PR format",
+      message: "This pull request can be queued once the repository is connected.",
+    };
+  }
+
+  if (validation === "invalid") {
+    return {
+      tone: "danger",
+      title: "Invalid PR format",
+      message:
+        "Use a GitHub PR URL or owner/repo#number, for example Prachi2519/CodeHorse#12.",
+    };
+  }
+
+  return {
+    tone: touched ? "warning" : "neutral",
+    title: touched ? "Empty input" : "Waiting for a pull request",
+    message: touched
+      ? "Paste a GitHub PR URL or owner/repo#number to queue a manual review."
+      : "Manual reviews support GitHub PR URLs and owner/repo#number identifiers.",
+  };
+};
+
+const ReviewSkeleton = ({ viewMode }: { viewMode: ReviewViewMode }) => {
   return (
-    <Card className="shadow-sm">
-      <CardContent className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-center">
-        <div className="rounded-lg bg-muted p-3">
-          <MessageSquareText className="size-6 text-muted-foreground" />
+    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="codehorse-panel rounded-lg p-4">
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="mt-2 h-4 w-64" />
+        <div className="mt-5 space-y-3">
+          {Array.from({ length: viewMode === "list" ? 4 : 6 }).map(
+            (_, index) => (
+              <Skeleton
+                className={cn(
+                  "w-full rounded-lg",
+                  viewMode === "list" ? "h-32" : "h-20",
+                )}
+                key={index}
+              />
+            ),
+          )}
         </div>
-        <div>
-          <h2 className="text-xl font-semibold">No reviews yet</h2>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Open or update a pull request on a connected repository and
-            CodeHorse will place the generated review here.
-          </p>
-        </div>
-        <Button asChild>
-          <a href="/dashboard/repository">Connect repositories</a>
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="codehorse-panel rounded-lg p-4">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="mt-2 h-4 w-72" />
+        <Skeleton className="mt-5 h-[520px] w-full rounded-lg" />
+      </div>
+    </div>
   );
 };
 

@@ -49,6 +49,15 @@ type GitHubContributionResponse = {
   };
 };
 
+const getGitHubErrorStatus = (error: unknown) => {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return null;
+  }
+
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : null;
+};
+
 export async function fetchUserContribution(token: string, username: string) {
   const octokit = new Octokit({ auth: token });
 
@@ -99,6 +108,31 @@ export const getRepositories = async (
   return data;
 };
 
+export const getRepositoryAccess = async (owner: string, repo: string) => {
+  const token = await getGithubToken();
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    const { data } = await octokit.rest.repos.get({
+      owner,
+      repo,
+    });
+
+    return {
+      githubId: data.id,
+      canManageWebhooks: Boolean(data.permissions?.admin),
+    };
+  } catch (error) {
+    const status = getGitHubErrorStatus(error);
+
+    if (status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
 export const createWebhook = async (owner: string, repo: string) => {
   const token = await getGithubToken();
   const octokit = new Octokit({ auth: token });
@@ -117,31 +151,43 @@ export const createWebhook = async (owner: string, repo: string) => {
     ...(webhookSecret ? { secret: webhookSecret } : {}),
   };
 
-  const { data: hooks } = await octokit.rest.repos.listWebhooks({
-    owner,
-    repo,
-  });
-  const existingHook = hooks.find((hook) => hook.config.url === webhookUrl);
-  if (existingHook) {
-    const { data: updatedHook } = await octokit.rest.repos.updateWebhook({
+  try {
+    const { data: hooks } = await octokit.rest.repos.listWebhooks({
       owner,
       repo,
-      hook_id: existingHook.id,
+    });
+    const existingHook = hooks.find((hook) => hook.config.url === webhookUrl);
+    if (existingHook) {
+      const { data: updatedHook } = await octokit.rest.repos.updateWebhook({
+        owner,
+        repo,
+        hook_id: existingHook.id,
+        config: webhookConfig,
+        events: ["pull_request"],
+        active: true,
+      });
+      return updatedHook;
+    }
+    const { data } = await octokit.rest.repos.createWebhook({
+      owner,
+      repo,
       config: webhookConfig,
       events: ["pull_request"],
       active: true,
     });
-    return updatedHook;
-  }
-  const { data } = await octokit.rest.repos.createWebhook({
-    owner,
-    repo,
-    config: webhookConfig,
-    events: ["pull_request"],
-    active: true,
-  });
 
-  return data;
+    return data;
+  } catch (error) {
+    const status = getGitHubErrorStatus(error);
+
+    if (status === 403 || status === 404) {
+      throw new Error(
+        `GitHub would not allow webhook setup for ${owner}/${repo}. Make sure this GitHub account has repository admin access and has authorized webhook permissions.`,
+      );
+    }
+
+    throw error;
+  }
 };
 
 export const deleteWebhook = async (owner: string, repo: string) => {
