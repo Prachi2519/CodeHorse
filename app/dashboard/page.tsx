@@ -12,7 +12,6 @@ import {
   GitPullRequest,
   LayoutDashboard,
   RefreshCw,
-  ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -89,17 +88,6 @@ const monthLabels = [
   "Apr",
   "May",
 ];
-
-const GitHubMark = ({ className }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.29 9.41 7.86 10.94.58.1.79-.25.79-.56v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.18 1.18A11.1 11.1 0 0 1 12 6.06c.98 0 1.96.13 2.88.4 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.27 5.68.42.36.79 1.07.79 2.16v3.13c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
-  </svg>
-);
 
 const DashboardPage = () => {
   const [activeSeries, setActiveSeries] = useState<Record<SeriesKey, boolean>>({
@@ -214,42 +202,15 @@ const DashboardPage = () => {
     },
   ];
 
-  const insights = [
-    {
-      title: "Contribution velocity is active",
-      description: "59 contributions are visible across the last year.",
-      icon: TrendingUp,
-      tone: "text-success",
-    },
-    {
-      title: "Pull request activity detected",
-      description: "CodeHorse found recent PR movement tied to this identity.",
-      icon: GitPullRequest,
-      tone: "text-chart-3",
-    },
-    {
-      title: "AI reviews are ready to be generated",
-      description: "Review workflows can start as soon as a PR is selected.",
-      icon: Bot,
-      tone: "text-primary",
-    },
-    {
-      title: "Repository connection is healthy",
-      description: "Your workspace has one connected repository available.",
-      icon: ShieldCheck,
-      tone: "text-success",
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="codehorse-panel rounded-lg p-4">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+        <header className="codehorse-panel rounded-lg p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-5">
               <SidebarTrigger className="mt-1 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden" />
               <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-border">
                 <LayoutDashboard className="size-5" />
@@ -268,7 +229,7 @@ const DashboardPage = () => {
                 <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
                   Engineering Command Center
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+                <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
                   Live GitHub analytics, contribution velocity, pull requests,
                   and AI review insights.
                 </p>
@@ -277,7 +238,7 @@ const DashboardPage = () => {
 
             <div className="flex flex-wrap items-center gap-3">
               <Button
-                className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+                className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
                 disabled={isRefreshing}
                 onClick={refreshDashboard}
                 type="button"
@@ -289,14 +250,14 @@ const DashboardPage = () => {
                 Refresh
               </Button>
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+                <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
                   {accountInitial}
                 </div>
                 <div className="hidden min-w-0 sm:block">
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="truncate text-base font-medium text-foreground">
                     {accountName}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-base text-muted-foreground">
                     {accountEmail}
                   </p>
                 </div>
@@ -305,7 +266,7 @@ const DashboardPage = () => {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {metricCards.map((item) => (
             <KpiCard
               isLoading={isStatsLoading}
@@ -315,11 +276,11 @@ const DashboardPage = () => {
           ))}
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
+        <section>
           <DashboardPanel className="min-w-0" eyebrow="Contribution Activity">
             <PanelHeader
               action={
-                <div className="text-xs font-medium text-muted-foreground">
+                <div className="text-base font-medium text-muted-foreground">
                   {numberFormatter.format(
                     contributionStats?.totalContributions ??
                       stats?.totalCommits ??
@@ -341,11 +302,9 @@ const DashboardPage = () => {
               }
             />
           </DashboardPanel>
-
-          <SystemHealthPanel totals={totals} />
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="grid gap-5">
           <DashboardPanel className="min-w-0" eyebrow="Monthly Activity">
             <PanelHeader
               action={
@@ -360,7 +319,7 @@ const DashboardPage = () => {
             <div className="mt-4 flex flex-wrap gap-2">
               {(Object.keys(seriesMeta) as SeriesKey[]).map((key) => (
                 <button
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                  className={`rounded-lg border px-3 py-1.5 text-base font-medium transition-all ${
                     activeSeries[key]
                       ? seriesMeta[key].surface
                       : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
@@ -454,21 +413,7 @@ const DashboardPage = () => {
             </div>
           </DashboardPanel>
 
-          <div className="grid gap-5">
-            <DashboardPanel eyebrow="Engineering Insights">
-              <PanelHeader
-                subtitle="High-signal workspace reads for this account."
-                title="Engineering Insights"
-              />
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {insights.map((item) => (
-                  <InsightCard item={item} key={item.title} />
-                ))}
-              </div>
-            </DashboardPanel>
-
-            <EmptyReviewsPanel />
-          </div>
+          <EmptyReviewsPanel />
         </section>
       </div>
     </div>
@@ -487,9 +432,9 @@ const KpiCard = ({
       <div
         className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${item.glow} opacity-80 transition-opacity group-hover:opacity-100`}
       />
-      <div className="relative flex items-start justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-5">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="text-base font-medium text-muted-foreground">
             {item.title}
           </p>
           <div className="text-4xl font-semibold tracking-normal text-foreground">
@@ -505,14 +450,14 @@ const KpiCard = ({
         </div>
       </div>
 
-      <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-border pt-4 text-xs">
+      <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-border pt-4 text-base">
         <span className="text-muted-foreground">{item.label}</span>
         <span className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 px-2 py-1 font-medium text-success">
           <span className="size-1.5 animate-pulse rounded-full bg-success" />
           {item.status}
         </span>
       </div>
-      <div className="relative mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+      <div className="relative mt-3 flex items-center gap-1 text-base text-muted-foreground">
         <TrendingUp className="size-3 text-success" />
         {item.trend}
       </div>
@@ -554,7 +499,7 @@ const PanelHeader = ({
         <h2 className="text-xl font-semibold tracking-normal text-foreground">
           {title}
         </h2>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        <p className="mt-1 text-base leading-7 text-muted-foreground">
           {subtitle}
         </p>
       </div>
@@ -583,7 +528,7 @@ const ContributionHeatmap = ({
 
   if (!data.length) {
     return (
-      <div className="mt-6 rounded-lg border border-border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
+      <div className="mt-6 rounded-lg border border-border bg-muted/40 p-8 text-center text-base text-muted-foreground">
         No contribution data available yet.
       </div>
     );
@@ -600,7 +545,7 @@ const ContributionHeatmap = ({
 
   return (
     <div className="mt-6">
-      <div className="mb-3 flex min-w-max justify-between px-1 text-xs text-muted-foreground">
+      <div className="mb-3 flex min-w-max justify-between px-1 text-base text-muted-foreground">
         {monthLabels.map((month) => (
           <span key={month}>{month}</span>
         ))}
@@ -615,7 +560,7 @@ const ContributionHeatmap = ({
                   levels[day.level] ?? levels[0]
                 }`}
               />
-              <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 hidden w-max -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-2xl group-hover:block">
+              <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 hidden w-max -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-base text-popover-foreground shadow-2xl group-hover:block">
                 {day.count} contribution{day.count === 1 ? "" : "s"} on{" "}
                 {day.date}
               </div>
@@ -625,13 +570,13 @@ const ContributionHeatmap = ({
       </div>
 
       <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-base text-muted-foreground">
           <span className="font-semibold text-foreground">
             {numberFormatter.format(total)}
           </span>{" "}
           contributions in the last year
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-base text-muted-foreground">
           <span>Less</span>
           {[0, 1, 2, 3, 4].map((level) => (
             <span
@@ -646,142 +591,11 @@ const ContributionHeatmap = ({
   );
 };
 
-const SystemHealthPanel = ({
-  totals,
-}: {
-  totals: { commits: number; prs: number; reviews: number };
-}) => {
-  const rows = [
-    {
-      label: "GitHub account synced",
-      value: "Operational",
-      progress: 100,
-      icon: GitHubMark,
-    },
-    {
-      label: "Live token-backed analytics enabled",
-      value: "Enabled",
-      progress: 100,
-      icon: ShieldCheck,
-    },
-    {
-      label: "6 month commits",
-      value: numberFormatter.format(totals.commits),
-      progress: Math.min(100, totals.commits * 2.2),
-      icon: GitCommit,
-    },
-    {
-      label: "6 month PRs",
-      value: numberFormatter.format(totals.prs),
-      progress: Math.min(100, totals.prs * 18),
-      icon: GitPullRequest,
-    },
-    {
-      label: "Review samples",
-      value: numberFormatter.format(totals.reviews),
-      progress: totals.reviews > 0 ? Math.min(100, totals.reviews * 25) : 8,
-      icon: Bot,
-    },
-  ];
-
-  return (
-    <DashboardPanel eyebrow="System Health">
-      <PanelHeader
-        subtitle="Current workspace signals for this account."
-        title="System Health"
-      />
-      <div className="mt-5 rounded-lg border border-success/15 bg-success/10 p-4">
-        <div className="flex items-center gap-3">
-          <div className="relative flex size-11 items-center justify-center rounded-lg bg-success/15 text-success ring-1 ring-success/20">
-            <span className="absolute size-11 animate-ping rounded-lg bg-success/10" />
-            <ShieldCheck className="relative size-5" />
-          </div>
-          <div>
-            <p className="font-medium text-foreground">Workspace healthy</p>
-            <p className="text-sm text-muted-foreground">
-              GitHub account synced and analytics online.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {rows.map((row) => (
-          <HealthRow row={row} key={row.label} />
-        ))}
-      </div>
-    </DashboardPanel>
-  );
-};
-
-const HealthRow = ({
-  row,
-}: {
-  row: {
-    label: string;
-    value: string;
-    progress: number;
-    icon: LucideIcon | typeof GitHubMark;
-  };
-}) => {
-  return (
-    <div className="rounded-lg border border-border bg-muted/35 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-card text-muted-foreground ring-1 ring-border">
-            <row.icon className="size-4" />
-          </span>
-          <span className="text-sm text-muted-foreground">{row.label}</span>
-        </div>
-        <span className="flex items-center gap-2 text-sm font-medium text-success">
-          <span className="size-1.5 rounded-full bg-success" />
-          {row.value}
-        </span>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-success to-chart-3"
-          style={{ width: `${row.progress}%` }}
-        />
-      </div>
-    </div>
-  );
-};
-
-const InsightCard = ({
-  item,
-}: {
-  item: {
-    title: string;
-    description: string;
-    icon: LucideIcon;
-    tone: string;
-  };
-}) => {
-  return (
-    <div className="rounded-lg border border-border bg-muted/35 p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-muted/60">
-      <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card ring-1 ring-border">
-          <item.icon className={`size-4 ${item.tone}`} />
-        </span>
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {item.title}
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {item.description}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const EmptyReviewsPanel = () => {
   return (
     <DashboardPanel eyebrow="AI Reviews">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-4">
+      <div className="flex flex-col items-start gap-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
             <Bot className="size-5" />
           </div>
@@ -789,7 +603,7 @@ const EmptyReviewsPanel = () => {
             <h2 className="text-xl font-semibold text-foreground">
               No AI reviews yet
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 max-w-xl text-base leading-7 text-muted-foreground">
               Connect a repository or trigger your first review to generate
               AI-powered feedback.
             </p>
@@ -797,7 +611,7 @@ const EmptyReviewsPanel = () => {
         </div>
         <Button
           asChild
-          className="h-10 rounded-lg bg-primary text-primary-foreground shadow-xl hover:bg-primary/90"
+          className="h-11 rounded-lg bg-primary text-primary-foreground shadow-xl hover:bg-primary/90"
         >
           <a href="/dashboard/reviews">
             Start AI Review
@@ -812,7 +626,7 @@ const EmptyReviewsPanel = () => {
 const ChartSkeleton = () => {
   return (
     <div className="flex h-full flex-col justify-end gap-3">
-      <div className="grid flex-1 grid-cols-6 items-end gap-4">
+      <div className="grid flex-1 grid-cols-6 items-end gap-5">
         {[40, 70, 52, 90, 64, 78].map((height) => (
           <Skeleton
             className="rounded-lg"

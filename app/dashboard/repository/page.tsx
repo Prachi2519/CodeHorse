@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
+  AlertTriangle,
   Bot,
   CheckCircle2,
   CircleDot,
@@ -25,9 +26,21 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Trash2,
   Zap,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +52,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useConnectRepository } from "@/module/repository/hooks/use-connect-repository";
+import {
+  useDisconnectAllRepositories,
+  useDisconnectRepository,
+} from "@/module/repository/hooks/use-disconnect-repository";
 import { useRepositories } from "@/module/repository/hooks/use-repositories";
 
 interface Repository {
@@ -93,6 +110,9 @@ const RepositoryPage = () => {
   const [sortBy, setSortBy] = useState<SortMode>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [connectingRepoId, setConnectingRepoId] = useState<number | null>(null);
+  const [disconnectingRepoId, setDisconnectingRepoId] = useState<number | null>(
+    null,
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: session } = useSession();
@@ -111,6 +131,8 @@ const RepositoryPage = () => {
     isFetchingNextPage,
   } = useRepositories();
   const connectMutation = useConnectRepository();
+  const disconnectMutation = useDisconnectRepository();
+  const disconnectAllMutation = useDisconnectAllRepositories();
 
   const allRepositories = useMemo<Repository[]>(
     () => data?.pages.flat() ?? [],
@@ -253,6 +275,30 @@ const RepositoryPage = () => {
     );
   };
 
+  const handleDisconnect = (repository: Repository) => {
+    if (!repository.isConnected) {
+      return;
+    }
+
+    setDisconnectingRepoId(repository.id);
+    disconnectMutation.mutate(
+      {
+        githubId: repository.id,
+      },
+      {
+        onSettled: () => setDisconnectingRepoId(null),
+      },
+    );
+  };
+
+  const handleDisconnectAll = () => {
+    if (connectedCount === 0) {
+      return;
+    }
+
+    disconnectAllMutation.mutate();
+  };
+
   const focusRepositorySearch = () => {
     searchInputRef.current?.focus();
   };
@@ -262,7 +308,7 @@ const RepositoryPage = () => {
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <RepositoryHeader
           accountEmail={accountEmail}
           accountInitial={accountInitial}
@@ -272,7 +318,7 @@ const RepositoryPage = () => {
           onSync={() => void refetch()}
         />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
             <MetricCard isLoading={isLoading} item={metric} key={metric.title} />
           ))}
@@ -297,18 +343,27 @@ const RepositoryPage = () => {
           <div className="min-w-0 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold tracking-normal text-foreground">
+                <h2 className="text-xl font-semibold tracking-normal text-foreground">
                   Repository Workspace
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   {repositories.length} of {allRepositories.length} repositories
                   visible
                 </p>
               </div>
-              <Badge className="w-fit border-success/20 bg-success/10 text-success">
-                <span className="size-1.5 animate-pulse rounded-full bg-success" />
-                GitHub synced
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                {connectedCount > 0 ? (
+                  <DisconnectAllRepositoriesButton
+                    connectedCount={connectedCount}
+                    isDisconnecting={disconnectAllMutation.isPending}
+                    onDisconnectAll={handleDisconnectAll}
+                  />
+                ) : null}
+                <Badge className="w-fit border-success/20 bg-success/10 text-success">
+                  <span className="size-1.5 animate-pulse rounded-full bg-success" />
+                  GitHub synced
+                </Badge>
+              </div>
             </div>
 
             {isError ? (
@@ -318,21 +373,27 @@ const RepositoryPage = () => {
             ) : repositories.length === 0 ? (
               <EmptyRepositoryState onFocusSearch={focusRepositorySearch} />
             ) : viewMode === "grid" ? (
-              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
                 {repositories.map((repository) => (
                   <RepositoryCard
                     connectingRepoId={connectingRepoId}
+                    disconnectingRepoId={disconnectingRepoId}
+                    isDisconnectingAll={disconnectAllMutation.isPending}
                     key={repository.id}
                     repository={repository}
                     onConnect={handleConnect}
+                    onDisconnect={handleDisconnect}
                   />
                 ))}
               </div>
             ) : (
               <RepositoryTable
                 connectingRepoId={connectingRepoId}
+                disconnectingRepoId={disconnectingRepoId}
+                isDisconnectingAll={disconnectAllMutation.isPending}
                 repositories={repositories}
                 onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
               />
             )}
 
@@ -387,9 +448,9 @@ const RepositoryHeader = ({
   onSync: () => void;
 }) => {
   return (
-    <header className="codehorse-panel rounded-lg p-4">
+    <header className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-5">
           <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
             <FolderGit2 className="size-5" />
           </div>
@@ -407,7 +468,7 @@ const RepositoryHeader = ({
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               Repositories
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
               Browse and connect your GitHub repositories for AI-powered code
               review.
             </p>
@@ -416,7 +477,7 @@ const RepositoryHeader = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             disabled={isFetching}
             onClick={onSync}
             type="button"
@@ -426,7 +487,7 @@ const RepositoryHeader = ({
             Sync GitHub
           </Button>
           <Button
-            className="h-10 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
+            className="h-11 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
             onClick={onFocusSearch}
             type="button"
           >
@@ -434,14 +495,14 @@ const RepositoryHeader = ({
             Connect Repository
           </Button>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
               {accountInitial || "P"}
             </div>
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-base font-medium text-foreground">
                 @{accountName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-base text-muted-foreground">
                 {accountEmail}
               </p>
             </div>
@@ -467,10 +528,10 @@ const MetricCard = ({
   };
 }) => {
   return (
-    <article className="codehorse-panel group rounded-lg p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
+    <article className="codehorse-panel group rounded-lg p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">{item.title}</p>
+          <p className="text-base text-muted-foreground">{item.title}</p>
           <div className="mt-2 min-h-9 text-2xl font-semibold tracking-tight text-foreground">
             {isLoading ? <Skeleton className="h-8 w-24" /> : item.metric}
           </div>
@@ -479,14 +540,14 @@ const MetricCard = ({
           <item.icon className={cn("size-4", item.tone)} />
         </div>
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3 text-xs">
+      <div className="mt-4 flex items-center justify-between gap-3 text-base">
         <span className="text-muted-foreground">{item.label}</span>
         <span className="inline-flex items-center gap-1 text-success">
           <CircleDot className="size-3" />
           Active
         </span>
       </div>
-      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+      <p className="mt-2 text-base leading-7 text-muted-foreground">
         {item.helper}
       </p>
     </article>
@@ -526,7 +587,7 @@ const RepositoryControls = ({
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="h-10 rounded-lg border-border bg-background/60 pl-9 text-sm"
+            className="h-11 rounded-lg border-border bg-background/60 pl-9 text-base"
             id="repository-search"
             placeholder="Search repositories..."
             ref={searchInputRef}
@@ -613,7 +674,7 @@ const ControlSelect = ({
   onChange: (value: string) => void;
 }) => {
   return (
-    <div className="flex h-10 min-w-[11rem] items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-sm text-muted-foreground">
+    <div className="flex h-10 min-w-[11rem] items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-base text-muted-foreground">
       <Icon className="size-4" />
       <NativeSelect
         aria-label={label}
@@ -642,7 +703,7 @@ const ViewButton = ({
     <button
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-base font-medium text-muted-foreground transition-colors hover:text-foreground",
         active && "bg-card text-foreground shadow-sm",
       )}
       onClick={onClick}
@@ -654,30 +715,97 @@ const ViewButton = ({
   );
 };
 
+const DisconnectAllRepositoriesButton = ({
+  connectedCount,
+  isDisconnecting,
+  onDisconnectAll,
+}: {
+  connectedCount: number;
+  isDisconnecting: boolean;
+  onDisconnectAll: () => void;
+}) => {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          className="border-danger/20 bg-danger/10 text-danger hover:bg-danger/20"
+          disabled={isDisconnecting}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {isDisconnecting ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="size-3.5" />
+          )}
+          Disconnect All
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="size-5 text-danger" />
+            Disconnect all repositories?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove CodeHorse access for AI reviews and repository
+            signals for all {connectedCount} connected repositories. You can
+            reconnect them later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="border-danger/20 bg-danger/10 text-danger hover:bg-danger/20"
+            disabled={isDisconnecting}
+            onClick={onDisconnectAll}
+            variant="outline"
+          >
+            {isDisconnecting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : null}
+            Disconnect All Repositories
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
 const RepositoryCard = ({
   connectingRepoId,
+  disconnectingRepoId,
+  isDisconnectingAll,
   repository,
   onConnect,
+  onDisconnect,
 }: {
   connectingRepoId: number | null;
+  disconnectingRepoId: number | null;
+  isDisconnectingAll: boolean;
   repository: Repository;
   onConnect: (repository: Repository) => void;
+  onDisconnect: (repository: Repository) => void;
 }) => {
   const isConnecting = connectingRepoId === repository.id;
+  const isDisconnecting =
+    isDisconnectingAll || disconnectingRepoId === repository.id;
   const canConnect = Boolean(repository.canManageWebhooks);
+  const isConnected = Boolean(repository.isConnected);
 
   return (
-    <article className="codehorse-panel group flex min-h-[280px] flex-col rounded-lg p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
+    <article className="codehorse-panel group flex min-h-[280px] flex-col rounded-lg p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="rounded-lg border border-border bg-muted/60 p-2 text-primary">
             <FolderGit2 className="size-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-semibold tracking-normal text-foreground">
+            <h3 className="truncate text-xl font-semibold tracking-normal text-foreground">
               {repository.name}
             </h3>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
+            <p className="mt-1 truncate text-base text-muted-foreground">
               {repository.full_name}
             </p>
           </div>
@@ -695,7 +823,7 @@ const RepositoryCard = ({
         </Button>
       </div>
 
-      <p className="mt-5 line-clamp-2 min-h-10 text-sm leading-6 text-muted-foreground">
+      <p className="mt-5 line-clamp-2 min-h-10 text-base leading-7 text-muted-foreground">
         {repository.description || "No description provided."}
       </p>
 
@@ -708,7 +836,7 @@ const RepositoryCard = ({
         <ReviewStatusBadge isConnected={Boolean(repository.isConnected)} />
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
+      <div className="mt-5 grid grid-cols-3 gap-2 text-base">
         <RepositorySignal
           icon={Star}
           label="Stars"
@@ -727,45 +855,27 @@ const RepositoryCard = ({
       </div>
 
       <div className="mt-auto space-y-2 pt-5">
-        <ConnectButton
-          canConnect={canConnect}
-          isConnected={Boolean(repository.isConnected)}
-          isConnecting={isConnecting}
-          repository={repository}
-          onConnect={onConnect}
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            asChild
-            className="border-border bg-card/70 text-foreground hover:bg-muted"
-            size="sm"
-            variant="outline"
-          >
-            <a href={repository.html_url} rel="noreferrer" target="_blank">
-              <Eye className="size-3.5" />
-              View
-            </a>
-          </Button>
-          <Button
-            asChild={Boolean(repository.isConnected)}
-            className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-            disabled={!repository.isConnected}
-            size="sm"
-            variant="outline"
-          >
-            {repository.isConnected ? (
-              <Link href="/dashboard/reviews">
-                <Bot className="size-3.5" />
-                Start AI Review
-              </Link>
-            ) : (
-              <>
-                <Bot className="size-3.5" />
-                Start AI Review
-              </>
-            )}
-          </Button>
-        </div>
+        {isConnected ? (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <ViewRepositoryButton repository={repository} />
+            <ConfigureRepositoryButton />
+            <DisconnectRepositoryButton
+              isDisconnecting={isDisconnecting}
+              repository={repository}
+              onDisconnect={onDisconnect}
+            />
+          </div>
+        ) : (
+          <>
+            <ConnectButton
+              canConnect={canConnect}
+              isConnecting={isConnecting}
+              repository={repository}
+              onConnect={onConnect}
+            />
+            <ViewRepositoryButton repository={repository} />
+          </>
+        )}
       </div>
     </article>
   );
@@ -773,18 +883,24 @@ const RepositoryCard = ({
 
 const RepositoryTable = ({
   connectingRepoId,
+  disconnectingRepoId,
+  isDisconnectingAll,
   repositories,
   onConnect,
+  onDisconnect,
 }: {
   connectingRepoId: number | null;
+  disconnectingRepoId: number | null;
+  isDisconnectingAll: boolean;
   repositories: Repository[];
   onConnect: (repository: Repository) => void;
+  onDisconnect: (repository: Repository) => void;
 }) => {
   return (
     <div className="codehorse-panel overflow-hidden rounded-lg">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b border-border text-xs uppercase tracking-[0.16em] text-muted-foreground">
+        <table className="w-full min-w-[980px] text-left text-base">
+          <thead className="border-b border-border text-base uppercase tracking-[0.16em] text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">Repository</th>
               <th className="px-4 py-3 font-semibold">Language</th>
@@ -797,14 +913,17 @@ const RepositoryTable = ({
           <tbody className="divide-y divide-border">
             {repositories.map((repository) => {
               const isConnecting = connectingRepoId === repository.id;
+              const isDisconnecting =
+                isDisconnectingAll || disconnectingRepoId === repository.id;
               const canConnect = Boolean(repository.canManageWebhooks);
+              const isConnected = Boolean(repository.isConnected);
 
               return (
                 <tr
                   className="transition-colors hover:bg-muted/30"
                   key={repository.id}
                 >
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="rounded-lg border border-border bg-muted/60 p-2 text-primary">
                         <FolderGit2 className="size-4" />
@@ -813,25 +932,25 @@ const RepositoryTable = ({
                         <div className="truncate font-semibold text-foreground">
                           {repository.name}
                         </div>
-                        <div className="truncate text-xs text-muted-foreground">
+                        <div className="truncate text-base text-muted-foreground">
                           {repository.full_name}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <LanguageBadge language={repository.language} />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <ReviewStatusBadge
                       isConnected={Boolean(repository.isConnected)}
                     />
                   </td>
-                  <td className="px-4 py-4 text-muted-foreground">
+                  <td className="px-4 py-5 text-muted-foreground">
                     {formatSyncedAt(repository)}
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <td className="px-4 py-5">
+                    <div className="flex items-center gap-3 text-base text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Star className="size-3.5" />
                         {repository.stargazers_count}
@@ -842,45 +961,31 @@ const RepositoryTable = ({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        asChild={Boolean(repository.isConnected)}
-                        className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-                        disabled={!repository.isConnected}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {repository.isConnected ? (
-                          <Link href="/dashboard/reviews">
-                            <Bot className="size-3.5" />
-                            Start
-                          </Link>
-                        ) : (
-                          <>
-                            <Bot className="size-3.5" />
-                            Start
-                          </>
-                        )}
-                      </Button>
-                      <Button asChild size="sm" variant="ghost">
-                        <a
-                          href={repository.html_url}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          <ExternalLink className="size-3.5" />
-                          View
-                        </a>
-                      </Button>
-                      <ConnectButton
-                        canConnect={canConnect}
-                        compact
-                        isConnected={Boolean(repository.isConnected)}
-                        isConnecting={isConnecting}
-                        repository={repository}
-                        onConnect={onConnect}
-                      />
+                      {isConnected ? (
+                        <>
+                          <ViewRepositoryButton compact repository={repository} />
+                          <ConfigureRepositoryButton compact />
+                          <DisconnectRepositoryButton
+                            compact
+                            isDisconnecting={isDisconnecting}
+                            repository={repository}
+                            onDisconnect={onDisconnect}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <ConnectButton
+                            canConnect={canConnect}
+                            compact
+                            isConnecting={isConnecting}
+                            repository={repository}
+                            onConnect={onConnect}
+                          />
+                          <ViewRepositoryButton compact repository={repository} />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -896,14 +1001,12 @@ const RepositoryTable = ({
 const ConnectButton = ({
   canConnect,
   compact = false,
-  isConnected,
   isConnecting,
   repository,
   onConnect,
 }: {
   canConnect: boolean;
   compact?: boolean;
-  isConnected: boolean;
   isConnecting: boolean;
   repository: Repository;
   onConnect: (repository: Repository) => void;
@@ -914,28 +1017,130 @@ const ConnectButton = ({
         "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90",
         compact ? "min-w-28" : "w-full",
       )}
-      disabled={isConnected || !canConnect || isConnecting}
+      disabled={!canConnect || isConnecting}
       onClick={() => onConnect(repository)}
       size={compact ? "sm" : "default"}
       type="button"
     >
       {isConnecting ? (
         <Loader2 className="size-4 animate-spin" />
-      ) : isConnected ? (
-        <CheckCircle2 className="size-4" />
       ) : (
         <Zap className="size-4" />
       )}
-      {isConnected
-        ? "Connected"
-        : !canConnect
-          ? "Needs admin"
-          : isConnecting
-            ? "Connecting..."
-            : compact
-              ? "Connect"
-              : "Connect for AI Review"}
+      {!canConnect
+        ? "Needs admin"
+        : isConnecting
+          ? "Connecting..."
+          : compact
+            ? "Connect"
+            : "Connect for AI Review"}
     </Button>
+  );
+};
+
+const ViewRepositoryButton = ({
+  compact = false,
+  repository,
+}: {
+  compact?: boolean;
+  repository: Repository;
+}) => {
+  return (
+    <Button
+      asChild
+      className={cn(
+        "border-border bg-card/70 text-foreground hover:bg-muted",
+        !compact && "w-full",
+      )}
+      size="sm"
+      variant="outline"
+    >
+      <a href={repository.html_url} rel="noreferrer" target="_blank">
+        <Eye className="size-3.5" />
+        View
+      </a>
+    </Button>
+  );
+};
+
+const ConfigureRepositoryButton = ({ compact = false }: { compact?: boolean }) => {
+  return (
+    <Button
+      asChild
+      className={cn(
+        "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10",
+        !compact && "w-full",
+      )}
+      size="sm"
+      variant="outline"
+    >
+      <Link href="/dashboard/settings">
+        <SlidersHorizontal className="size-3.5" />
+        Configure
+      </Link>
+    </Button>
+  );
+};
+
+const DisconnectRepositoryButton = ({
+  compact = false,
+  isDisconnecting,
+  repository,
+  onDisconnect,
+}: {
+  compact?: boolean;
+  isDisconnecting: boolean;
+  repository: Repository;
+  onDisconnect: (repository: Repository) => void;
+}) => {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          className={cn(
+            "border-danger/20 bg-danger/10 text-danger hover:bg-danger/20",
+            !compact && "w-full",
+          )}
+          disabled={isDisconnecting}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {isDisconnecting ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="size-3.5" />
+          )}
+          Disconnect
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="size-5 text-danger" />
+            Disconnect repository?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove CodeHorse access for AI reviews and repository
+            signals for this repo. You can reconnect it later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="border-danger/20 bg-danger/10 text-danger hover:bg-danger/20"
+            disabled={isDisconnecting}
+            onClick={() => onDisconnect(repository)}
+            variant="outline"
+          >
+            {isDisconnecting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : null}
+            Disconnect Repository
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 
@@ -1000,7 +1205,7 @@ const ReviewOnboardingCard = ({
       <h2 className="mt-5 text-xl font-semibold tracking-normal text-foreground">
         Start your first AI code review
       </h2>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+      <p className="mt-3 text-base leading-7 text-muted-foreground">
         Connect a repository to generate AI-powered feedback on pull requests,
         code quality, and maintainability.
       </p>
@@ -1083,10 +1288,10 @@ const WorkspaceInsights = ({
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Workspace Insights
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Repository signals
         </h2>
       </div>
@@ -1101,11 +1306,11 @@ const WorkspaceInsights = ({
               <div className="rounded-lg border border-border bg-card p-2">
                 <insight.icon className={cn("size-4", insight.tone)} />
               </div>
-              <p className="min-w-0 text-sm leading-5 text-muted-foreground">
+              <p className="min-w-0 text-base leading-7 text-muted-foreground">
                 {insight.label}
               </p>
             </div>
-            <span className="shrink-0 text-xs font-medium text-foreground">
+            <span className="shrink-0 text-base font-medium text-foreground">
               {insight.value}
             </span>
           </div>
@@ -1120,10 +1325,10 @@ const OperationalStatusCard = () => {
     <section className="codehorse-panel rounded-lg p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-base font-semibold text-foreground">
             System status
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Token-backed analytics enabled
           </p>
         </div>
@@ -1134,7 +1339,7 @@ const OperationalStatusCard = () => {
       <div className="mt-4 h-2 rounded-full bg-muted">
         <div className="h-full w-full rounded-full bg-gradient-to-r from-success via-primary to-chart-3" />
       </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-success">
+      <div className="mt-3 flex items-center gap-2 text-base text-success">
         <span className="size-1.5 animate-pulse rounded-full bg-success" />
         All systems operational
       </div>
@@ -1145,7 +1350,7 @@ const OperationalStatusCard = () => {
 const RepositoryLoadingState = ({ viewMode }: { viewMode: ViewMode }) => {
   if (viewMode === "table") {
     return (
-      <div className="codehorse-panel rounded-lg p-4">
+      <div className="codehorse-panel rounded-lg p-5">
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton className="h-14 w-full" key={index} />
@@ -1156,9 +1361,9 @@ const RepositoryLoadingState = ({ viewMode }: { viewMode: ViewMode }) => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, index) => (
-        <div className="codehorse-panel rounded-lg p-4" key={index}>
+        <div className="codehorse-panel rounded-lg p-5" key={index}>
           <div className="flex items-start gap-3">
             <Skeleton className="size-10 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -1192,7 +1397,7 @@ const EmptyRepositoryState = ({
       <h2 className="mt-5 text-xl font-semibold text-foreground">
         No repositories found
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+      <p className="mx-auto mt-2 max-w-md text-base leading-7 text-muted-foreground">
         Adjust your search or filters to find the repository you want to connect
         for AI-powered review.
       </p>
@@ -1212,7 +1417,7 @@ const ErrorState = () => {
       <h2 className="mt-5 text-xl font-semibold text-foreground">
         Could not load repositories
       </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+      <p className="mx-auto mt-2 max-w-md text-base leading-7 text-muted-foreground">
         Please check your GitHub connection and sync again.
       </p>
     </section>

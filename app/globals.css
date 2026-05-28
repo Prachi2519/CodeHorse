@@ -205,12 +205,65 @@
   }
 
   body {
-    @apply min-h-svh bg-background text-foreground;
+    @apply min-h-svh bg-background text-base leading-relaxed text-foreground antialiased;
   }
 }
 
 @layer components {
   /* Dev note: hardcoded Tailwind colors caused theme drift; shared UI colors should flow through these tokens. */
+  /* Typography rule: minimum readable text is 14px for secondary text and 16px for normal body text; avoid text-xs for anything important. */
+  .ch-hero-title {
+    @apply text-4xl leading-tight font-semibold tracking-normal text-foreground sm:text-6xl lg:text-7xl;
+  }
+
+  .ch-hero-tagline {
+    @apply text-2xl leading-8 font-medium text-foreground sm:text-3xl;
+  }
+
+  .ch-page-title {
+    @apply text-3xl leading-tight font-semibold tracking-normal text-foreground sm:text-4xl;
+  }
+
+  .ch-page-subtitle {
+    @apply max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8;
+  }
+
+  .ch-section-eyebrow {
+    @apply text-sm leading-5 font-semibold tracking-[0.16em] text-primary uppercase;
+  }
+
+  .ch-section-title {
+    @apply text-xl leading-7 font-semibold tracking-normal text-foreground sm:text-2xl;
+  }
+
+  .ch-card-title {
+    @apply text-lg leading-7 font-semibold text-foreground sm:text-xl;
+  }
+
+  .ch-card-description {
+    @apply text-base leading-7 text-muted-foreground;
+  }
+
+  .ch-metric-value {
+    @apply text-3xl leading-tight font-semibold tracking-normal text-foreground;
+  }
+
+  .ch-metric-label {
+    @apply text-base leading-6 text-muted-foreground;
+  }
+
+  .ch-table-text {
+    @apply text-base leading-6 text-foreground;
+  }
+
+  .ch-muted-text {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .ch-control-text {
+    @apply text-sm leading-5 font-medium;
+  }
+
   .codehorse-app-gradient {
     background: var(--app-gradient);
   }

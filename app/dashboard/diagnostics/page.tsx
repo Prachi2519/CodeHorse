@@ -226,7 +226,7 @@ const DiagnosticsPage = () => {
       icon: ShieldAlert,
     },
     {
-      title: "Data Freshness",
+      title: "Diagnostics Status",
       metric: freshnessLabel,
       helper: isDiagnosticsStale
         ? "Latest diagnostics timestamp is missing, old, or unverified."
@@ -244,39 +244,6 @@ const DiagnosticsPage = () => {
       icon: GitHubMark,
     },
   ] satisfies DiagnosticMetric[];
-
-  const freshnessRows = [
-    {
-      label: "Dashboard data",
-      value: hasDiagnosticsError ? "Unavailable" : "Fresh",
-      tone: hasDiagnosticsError ? "danger" : "success",
-    },
-    {
-      label: "Repository data",
-      value: isRepositoriesFetching ? "Refreshing" : "Fresh",
-      tone: isRepositoriesFetching ? "primary" : "success",
-    },
-    {
-      label: "Review data",
-      value: latestUpdatedAt && !hasOldRunData ? "Fresh" : "Stale",
-      tone: latestUpdatedAt && !hasOldRunData ? "success" : "warning",
-    },
-    {
-      label: "Diagnostics data",
-      value: freshnessLabel,
-      tone: freshnessTone,
-    },
-    {
-      label: "Last successful fetch",
-      value: lastUpdatedLabel,
-      tone: latestUpdatedAt ? "primary" : "warning",
-    },
-    {
-      label: "Next auto-refresh",
-      value: "On focus",
-      tone: "muted",
-    },
-  ] satisfies StatusRow[];
 
   const diagnosticLogs = [
     {
@@ -366,7 +333,7 @@ const DiagnosticsPage = () => {
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <DiagnosticsHeader
           accountEmail={accountEmail}
           accountInitial={accountInitial}
@@ -408,10 +375,6 @@ const DiagnosticsPage = () => {
               lastUpdatedLabel={lastUpdatedLabel}
               repositoryCount={repositoryCount}
               onRefresh={refreshDiagnostics}
-            />
-            <DataFreshnessPanel
-              freshnessRows={freshnessRows}
-              queryUpdatedAt={reviewsQueryUpdatedAt}
             />
             <RecommendedActionsPanel onRefresh={refreshDiagnostics} />
           </aside>
@@ -461,9 +424,9 @@ const DiagnosticsHeader = ({
   onRunHealthCheck: () => void;
 }) => {
   return (
-    <header className="codehorse-panel rounded-lg p-4">
+    <header className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-5">
           <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
             <Stethoscope className="size-5" />
           </div>
@@ -483,7 +446,7 @@ const DiagnosticsHeader = ({
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               Diagnostics
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
               Monitor review runs, GitHub sync health, token status, stale data,
               and workspace signals.
             </p>
@@ -492,7 +455,7 @@ const DiagnosticsHeader = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             disabled={isRefreshing}
             onClick={onRefresh}
             type="button"
@@ -510,14 +473,14 @@ const DiagnosticsHeader = ({
             Run Health Check
           </Button>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
               {accountInitial}
             </div>
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-base font-medium text-foreground">
                 @{accountName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-base text-muted-foreground">
                 {accountEmail}
               </p>
             </div>
@@ -538,25 +501,25 @@ const StaleDataBanner = ({
   return (
     <section className="rounded-lg border border-warning/25 bg-warning/10 p-5 shadow-lg">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex gap-4">
+        <div className="flex gap-5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-warning/30 bg-warning/15 text-warning">
             <AlertTriangle className="size-5" />
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="text-xl font-semibold text-foreground">
                 Stale diagnostics data detected
               </h2>
               <Badge className="border-warning/25 bg-warning/10 text-warning">
                 Data freshness: Stale
               </Badge>
             </div>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 max-w-4xl text-base leading-7 text-muted-foreground">
               Some workspace signals have not refreshed recently. Run a health
               check or re-sync GitHub to fetch the latest review and repository
               status.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-warning">
+            <div className="mt-3 flex flex-wrap gap-2 text-base text-warning">
               <span>Last updated: {lastUpdatedLabel}</span>
               <span className="text-muted-foreground">/</span>
               <span>Diagnostics should not silently show old values.</span>
@@ -601,7 +564,7 @@ const SummaryGrid = ({
   metrics: DiagnosticMetric[];
 }) => {
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       {metrics.map((metric) => (
         <MetricCard isLoading={isLoading} key={metric.title} metric={metric} />
       ))}
@@ -619,7 +582,7 @@ const MetricCard = ({
   const Icon = metric.icon;
 
   return (
-    <div className="group rounded-lg border border-border bg-card/80 p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card">
+    <div className="group rounded-lg border border-border bg-card/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card">
       <div className="flex items-start justify-between gap-3">
         <span
           className={cn(
@@ -633,7 +596,7 @@ const MetricCard = ({
         <StatusPill label={metric.status} tone={metric.tone} />
       </div>
       <div className="mt-5">
-        <p className="text-sm text-muted-foreground">{metric.title}</p>
+        <p className="text-base text-muted-foreground">{metric.title}</p>
         <div className="mt-2 min-h-9 text-2xl font-semibold tracking-normal text-foreground">
           {isLoading ? (
             <span className="block h-8 w-24 animate-pulse rounded-md bg-muted" />
@@ -641,7 +604,7 @@ const MetricCard = ({
             metric.metric
           )}
         </div>
-        <p className="mt-2 min-h-10 text-xs leading-5 text-muted-foreground">
+        <p className="mt-2 min-h-10 text-base leading-7 text-muted-foreground">
           {metric.helper}
         </p>
       </div>
@@ -660,15 +623,15 @@ const LatestReviewRunPanel = ({
 }) => {
   return (
     <section className="codehorse-panel-strong rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Review pipeline
           </p>
           <h2 className="mt-2 text-xl font-semibold text-foreground">
             Latest Review Run
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
             The newest pull request review run and the signal CodeHorse uses to
             determine diagnostic freshness.
           </p>
@@ -688,8 +651,8 @@ const LatestReviewRunPanel = ({
         {isLoading ? (
           <div className="h-44 animate-pulse rounded-lg bg-muted" />
         ) : latestRun ? (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusPill
@@ -700,10 +663,10 @@ const LatestReviewRunPanel = ({
                     {latestRun.mode}
                   </Badge>
                 </div>
-                <h3 className="mt-3 truncate text-lg font-semibold text-foreground">
+                <h3 className="mt-3 truncate text-xl font-semibold text-foreground">
                   #{latestRun.prNumber} {latestRun.prTitle}
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-base text-muted-foreground">
                   {latestRun.repositoryFullName}
                 </p>
               </div>
@@ -728,7 +691,7 @@ const LatestReviewRunPanel = ({
             </div>
 
             {latestRun.errorReason ? (
-              <div className="mt-4 rounded-lg border border-danger/25 bg-danger/10 p-3 text-sm text-danger">
+              <div className="mt-4 rounded-lg border border-danger/25 bg-danger/10 p-3 text-base text-danger">
                 {latestRun.errorReason}
               </div>
             ) : null}
@@ -741,11 +704,11 @@ const LatestReviewRunPanel = ({
             <h3 className="mt-5 text-xl font-semibold text-foreground">
               No review runs yet
             </h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+            <p className="mx-auto mt-2 max-w-xl text-base leading-7 text-muted-foreground">
               Trigger a manual review or open a pull request on a connected
               repository to create the first run.
             </p>
-            <p className="mx-auto mt-3 max-w-xl text-xs leading-5 text-warning">
+            <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-warning">
               No recent run data is available. Diagnostics may be stale until
               the first review run provides a timestamp.
             </p>
@@ -809,15 +772,15 @@ const RunHealthPanel = ({
 
   return (
     <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Run health
           </p>
           <h2 className="mt-2 text-xl font-semibold text-foreground">
             Review Run Health
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
             Completed, running, and failed review runs across the current
             workspace.
           </p>
@@ -834,7 +797,7 @@ const RunHealthPanel = ({
 
           return (
             <div
-              className="rounded-lg border border-border bg-card p-4"
+              className="rounded-lg border border-border bg-card p-5"
               key={segment.label}
             >
               <div className="flex items-center justify-between">
@@ -852,7 +815,7 @@ const RunHealthPanel = ({
               <div className="mt-4 text-3xl font-semibold text-foreground">
                 {segment.value}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-base text-muted-foreground">
                 {segment.label}
               </p>
             </div>
@@ -860,11 +823,11 @@ const RunHealthPanel = ({
         })}
       </div>
 
-      <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="mt-4 rounded-lg border border-border bg-muted/30 p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="font-semibold text-foreground">Health timeline</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               No run activity detected yet.
             </p>
           </div>
@@ -876,7 +839,7 @@ const RunHealthPanel = ({
               className="rounded-lg border border-dashed border-border bg-background/40 p-3"
               key={step}
             >
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-base text-muted-foreground">
                 <CircleDot className="size-3 text-muted-foreground" />
                 {step}
               </div>
@@ -938,13 +901,13 @@ const GitHubSyncHealthPanel = ({
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           GitHub sync
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           GitHub Sync Health
         </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 text-base leading-7 text-muted-foreground">
           Account, token, repository, and webhook checks for connected GitHub
           access.
         </p>
@@ -982,42 +945,6 @@ const GitHubSyncHealthPanel = ({
   );
 };
 
-const DataFreshnessPanel = ({
-  freshnessRows,
-  queryUpdatedAt,
-}: {
-  freshnessRows: StatusRow[];
-  queryUpdatedAt: number;
-}) => {
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Freshness
-        </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
-          Data Freshness
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Diagnostics should never silently show old values. When data cannot be
-          refreshed, CodeHorse shows a stale-state warning.
-        </p>
-      </div>
-      <div className="mt-5 space-y-3">
-        {freshnessRows.map((row) => (
-          <StatusRowItem key={row.label} row={row} />
-        ))}
-      </div>
-      <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
-        Client query refreshed:{" "}
-        <span className="text-foreground">
-          {queryUpdatedAt ? dateFormatter.format(queryUpdatedAt) : "Not yet"}
-        </span>
-      </div>
-    </section>
-  );
-};
-
 const RecentDiagnosticLogs = ({
   logs,
   onCopy,
@@ -1031,15 +958,15 @@ const RecentDiagnosticLogs = ({
     <section className="codehorse-panel rounded-lg p-5">
       <details open>
         <summary className="cursor-pointer list-none">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              <p className="ch-section-eyebrow">
                 Logs
               </p>
               <h2 className="mt-2 text-xl font-semibold text-foreground">
                 Recent Diagnostic Logs
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
                 No diagnostic logs are persisted yet, so CodeHorse shows the
                 latest suggested checks from the current health state.
               </p>
@@ -1048,7 +975,7 @@ const RecentDiagnosticLogs = ({
           </div>
         </summary>
 
-        <div className="mt-5 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div className="mt-5 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-base text-muted-foreground">
           No diagnostic logs available yet.
         </div>
 
@@ -1058,7 +985,7 @@ const RecentDiagnosticLogs = ({
 
             return (
               <div
-                className="rounded-lg border border-border bg-card p-4"
+                className="rounded-lg border border-border bg-card p-5"
                 key={log.title}
               >
                 <div className="flex gap-3">
@@ -1075,7 +1002,7 @@ const RecentDiagnosticLogs = ({
                     <h3 className="font-semibold text-foreground">
                       {log.title}
                     </h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    <p className="mt-1 text-base leading-7 text-muted-foreground">
                       {log.description}
                     </p>
                   </div>
@@ -1169,10 +1096,10 @@ const RecommendedActionsPanel = ({ onRefresh }: { onRefresh: () => void }) => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Recovery
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Recommended Actions
         </h2>
       </div>
@@ -1182,7 +1109,7 @@ const RecommendedActionsPanel = ({ onRefresh }: { onRefresh: () => void }) => {
 
           return (
             <div
-              className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
+              className="rounded-lg border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
               key={action.title}
             >
               <div className="flex items-start gap-3">
@@ -1193,7 +1120,7 @@ const RecommendedActionsPanel = ({ onRefresh }: { onRefresh: () => void }) => {
                   <h3 className="font-semibold text-foreground">
                     {action.title}
                   </h3>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  <p className="mt-1 text-base leading-7 text-muted-foreground">
                     {action.description}
                   </p>
                 </div>
@@ -1210,7 +1137,7 @@ const RecommendedActionsPanel = ({ onRefresh }: { onRefresh: () => void }) => {
 const StatusRowItem = ({ row }: { row: StatusRow }) => {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-base text-muted-foreground">
         <span
           className={cn("size-2 rounded-full", toneStyles[row.tone].dot)}
         />
@@ -1241,8 +1168,8 @@ const StatusPill = ({
 const RunSignal = ({ label, value }: { label: string; value: string }) => {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-foreground">
+      <p className="text-base text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-base font-semibold text-foreground">
         {value}
       </p>
     </div>

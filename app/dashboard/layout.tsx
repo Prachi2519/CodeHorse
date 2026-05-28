@@ -1,4 +1,5 @@
 import React from "react";
+import { cookies } from "next/headers";
 
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -8,9 +9,15 @@ export const dynamic = "force-dynamic";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   await requireAuth();
+  const cookieStore = await cookies();
+  const defaultSidebarOpen =
+    cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
-    <SidebarProvider className="bg-background text-foreground">
+    <SidebarProvider
+      className="bg-background text-foreground"
+      defaultOpen={defaultSidebarOpen}
+    >
       <AppSidebar />
       <SidebarInset className="min-h-svh bg-transparent">
         <main className="min-h-svh bg-background text-foreground">

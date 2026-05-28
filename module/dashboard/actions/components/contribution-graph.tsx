@@ -2,8 +2,8 @@
 
 import { ActivityCalendar } from "react-activity-calendar";
 import { useQuery } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
 
+import { useTheme } from "@/components/ui/providers/theme-providers";
 import { getContributionStats } from "@/module/dashboard/actions";
 
 const contributionTheme = {

@@ -162,16 +162,16 @@ const LoginUI = () => {
                 <Code2 className="size-4" />
               </span>
               <div>
-                <div className="text-sm font-semibold">CodeHorse</div>
-                <div className="text-xs text-muted-foreground">
-                  Build, ship, and stay in flow.
+                <div className="text-base font-semibold">CodeHorse</div>
+                <div className="text-base text-muted-foreground">
+                  AI Code Reviewer
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <Button
-                className="hidden h-9 rounded-lg border-border bg-card/80 px-3 text-foreground shadow-sm hover:bg-muted sm:inline-flex"
+                className="hidden h-10 rounded-lg border-border bg-card/80 px-3 text-foreground shadow-sm hover:bg-muted sm:inline-flex"
                 onClick={handleGithubLogin}
                 type="button"
                 variant="outline"
@@ -184,19 +184,24 @@ const LoginUI = () => {
 
           <div className="grid gap-12 pb-14 pt-16 lg:grid-cols-[1fr_0.92fr] lg:items-center lg:pb-20 lg:pt-24">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/75 px-3 py-1.5 text-sm font-medium text-foreground shadow-sm backdrop-blur">
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/75 px-3 py-1.5 text-base font-medium text-foreground shadow-sm backdrop-blur">
                 <ShieldCheck className="size-4 text-success" />
                 Secure GitHub authentication
               </div>
 
               <div className="mt-7 space-y-6">
                 <h1 className="max-w-4xl text-5xl font-semibold leading-[1.03] text-foreground sm:text-6xl lg:text-7xl">
-                  Secure GitHub authentication for builders who move fast.
+                  CodeHorse
                 </h1>
-                <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-                  Connect your developer identity in seconds and keep your
-                  CodeHorse workspace ready for real projects.
-                </p>
+                <div className="space-y-3">
+                  <p className="max-w-2xl text-2xl font-medium leading-8 text-foreground sm:text-3xl">
+                    AI Code Reviewer
+                  </p>
+                  <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
+                    Connect your developer identity in seconds and keep your
+                    CodeHorse workspace ready for real projects.
+                  </p>
+                </div>
               </div>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -214,7 +219,7 @@ const LoginUI = () => {
                   {isLoading ? "Connecting..." : "Continue with GitHub"}
                   {!isLoading ? <ArrowRight className="size-4" /> : null}
                 </Button>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   OAuth via GitHub · No password required · Ready in seconds
                 </p>
               </div>
@@ -235,7 +240,7 @@ const LoginUI = () => {
         <div className="mx-auto grid max-w-7xl gap-3 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-5 lg:px-8">
           {trustItems.map((item) => (
             <div
-              className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-sm font-medium text-card-foreground transition-colors hover:border-primary/30 hover:bg-muted"
+              className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-base font-medium text-card-foreground transition-colors hover:border-primary/30 hover:bg-muted"
               key={item.label}
             >
               <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shadow-sm">
@@ -250,7 +255,7 @@ const LoginUI = () => {
       <section className="bg-muted/30 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-primary">
+            <p className="text-base font-semibold text-primary">
               Why developers use CodeHorse
             </p>
             <h2 className="mt-3 text-4xl font-semibold leading-tight text-foreground">
@@ -258,7 +263,7 @@ const LoginUI = () => {
             </h2>
           </div>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {whyDevelopers.map((item) => (
               <div
                 className="rounded-lg border border-border bg-card p-6 text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
@@ -270,7 +275,7 @@ const LoginUI = () => {
                 <h3 className="mt-6 text-xl font-semibold text-card-foreground">
                   {item.title}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                <p className="mt-3 text-base leading-7 text-muted-foreground">
                   {item.description}
                 </p>
               </div>
@@ -282,7 +287,7 @@ const LoginUI = () => {
       <section className="bg-card px-4 py-20 text-card-foreground sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <p className="text-sm font-semibold text-success">
+            <p className="text-base font-semibold text-success">
               Security and OAuth
             </p>
             <h2 className="mt-3 text-4xl font-semibold leading-tight">
@@ -297,15 +302,15 @@ const LoginUI = () => {
             <div className="mt-8 space-y-3">
               {securityPoints.map((item) => (
                 <div
-                  className="flex gap-4 rounded-lg border border-border bg-muted/40 p-4"
+                  className="flex gap-5 rounded-lg border border-border bg-muted/40 p-5"
                   key={item.title}
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success ring-1 ring-success/20">
                     <item.icon className="size-4" />
                   </span>
                   <div>
-                    <h3 className="text-sm font-semibold">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    <h3 className="text-base font-semibold">{item.title}</h3>
+                    <p className="mt-1 text-base leading-7 text-muted-foreground">
                       {item.description}
                     </p>
                   </div>
@@ -322,7 +327,7 @@ const LoginUI = () => {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-8 lg:grid-cols-[0.76fr_1fr] lg:items-start">
             <div>
-              <p className="text-sm font-semibold text-primary">
+              <p className="text-base font-semibold text-primary">
                 Simple 3-step flow
               </p>
               <h2 className="mt-3 text-4xl font-semibold leading-tight text-foreground">
@@ -330,20 +335,20 @@ const LoginUI = () => {
               </h2>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-5">
               {oauthSteps.map((item, index) => (
                 <div
-                  className="group grid gap-4 rounded-lg border border-border bg-card p-5 text-card-foreground transition-all duration-300 hover:border-primary/30 hover:bg-muted/60 hover:shadow-lg sm:grid-cols-[auto_1fr_auto] sm:items-center"
+                  className="group grid gap-5 rounded-lg border border-border bg-card p-5 text-card-foreground transition-all duration-300 hover:border-primary/30 hover:bg-muted/60 hover:shadow-lg sm:grid-cols-[auto_1fr_auto] sm:items-center"
                   key={item.step}
                 >
-                  <div className="codehorse-brand-gradient flex size-11 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+                  <div className="codehorse-brand-gradient flex size-11 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
                     0{index + 1}
                   </div>
                   <div>
                     <h3 className="font-semibold text-card-foreground">
                       {item.title}
                     </h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    <p className="mt-1 text-base leading-7 text-muted-foreground">
                       {item.description}
                     </p>
                   </div>
@@ -400,24 +405,24 @@ const AuthPreviewCard = ({
   return (
     <div className="relative mx-auto w-full max-w-xl lg:mr-0">
       <div className="codehorse-panel-strong absolute -left-3 top-12 hidden w-40 rounded-lg p-3 text-foreground lg:block">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-base text-muted-foreground">
           <span className="size-2 rounded-full bg-success" />
           Connection live
         </div>
-        <div className="mt-3 text-sm font-semibold">github.com</div>
-        <div className="mt-1 text-xs text-muted-foreground">OAuth verified</div>
+        <div className="mt-3 text-base font-semibold">github.com</div>
+        <div className="mt-1 text-base text-muted-foreground">OAuth verified</div>
       </div>
 
       <div className="codehorse-panel-strong rounded-lg p-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-5">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">
+            <p className="text-base font-medium text-muted-foreground">
               CodeHorse
             </p>
             <h2 className="mt-2 text-3xl font-semibold text-foreground">
               Welcome back
             </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 text-base leading-7 text-muted-foreground">
               Sign in with GitHub to continue to your CodeHorse account.
             </p>
           </div>
@@ -440,19 +445,19 @@ const AuthPreviewCard = ({
           {isLoading ? "Connecting..." : "Continue with GitHub"}
         </Button>
 
-        <div className="mt-4 rounded-lg border border-border bg-muted/60 px-4 py-3 text-sm leading-6 text-muted-foreground">
+        <div className="mt-4 rounded-lg border border-border bg-muted/60 px-4 py-3 text-base leading-7 text-muted-foreground">
           Secure redirect note: GitHub authorizes the session, then returns you
           safely to CodeHorse.
         </div>
 
         <div className="mt-5 border-t border-border pt-5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-base text-muted-foreground">
             <span>OAuth request</span>
             <span className="rounded-lg bg-success/10 px-2 py-1 font-medium text-success">
               TLS secured
             </span>
           </div>
-          <div className="mt-3 rounded-lg border border-border bg-muted p-4 font-mono text-xs leading-6 text-muted-foreground">
+          <div className="mt-3 rounded-lg border border-border bg-muted p-5 font-mono text-base leading-7 text-muted-foreground">
             <div className="text-chart-3">GET /login/oauth/authorize</div>
             <div>client_id=codehorse</div>
             <div>scope=repo identity</div>
@@ -461,11 +466,11 @@ const AuthPreviewCard = ({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div className="codehorse-panel rounded-lg p-4 text-foreground">
+      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+        <div className="codehorse-panel rounded-lg p-5 text-foreground">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Workspace</div>
-            <span className="rounded-lg bg-success/10 px-2 py-1 text-xs text-success">
+            <div className="text-base font-medium">Workspace</div>
+            <span className="rounded-lg bg-success/10 px-2 py-1 text-base text-success">
               Ready
             </span>
           </div>
@@ -473,13 +478,13 @@ const AuthPreviewCard = ({
             {repos.map((repo) => (
               <div className="flex items-center justify-between" key={repo.name}>
                 <div>
-                  <div className="text-sm font-medium">{repo.name}</div>
-                  <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="text-base font-medium">{repo.name}</div>
+                  <div className="mt-0.5 flex items-center gap-1 text-base text-muted-foreground">
                     <GitBranch className="size-3" />
                     {repo.branch}
                   </div>
                 </div>
-                <div className={`text-xs font-medium ${repo.tone}`}>
+                <div className={`text-base font-medium ${repo.tone}`}>
                   {repo.status}
                 </div>
               </div>
@@ -487,9 +492,9 @@ const AuthPreviewCard = ({
           </div>
         </div>
 
-        <div className="codehorse-panel rounded-lg p-4">
+        <div className="codehorse-panel rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-foreground">
+            <div className="text-base font-semibold text-foreground">
               Commit activity
             </div>
             <GitCommitHorizontal className="size-4 text-muted-foreground" />
@@ -503,7 +508,7 @@ const AuthPreviewCard = ({
               />
             ))}
           </div>
-          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-4 flex items-center gap-2 text-base text-muted-foreground">
             <CheckCircle2 className="size-3.5 text-success" />
             Identity synced across repositories
           </div>
@@ -515,17 +520,17 @@ const AuthPreviewCard = ({
 
 const OAuthFlowPanel = () => {
   return (
-    <div className="codehorse-panel mt-6 rounded-lg p-4">
+    <div className="codehorse-panel mt-6 rounded-lg p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-semibold text-foreground">
+          <div className="text-base font-semibold text-foreground">
             GitHub OAuth flow
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             A clean handoff from sign-in to a ready CodeHorse workspace.
           </p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
+        <div className="inline-flex w-fit items-center gap-2 rounded-lg bg-success/10 px-3 py-1.5 text-base font-medium text-success">
           <ShieldCheck className="size-3.5" />
           Secure redirect
         </div>
@@ -534,16 +539,16 @@ const OAuthFlowPanel = () => {
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         {oauthSteps.map((item) => (
           <div
-            className="rounded-lg border border-border bg-card p-4 transition-transform duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+            className="rounded-lg border border-border bg-card p-5 transition-transform duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
             key={item.step}
           >
-            <div className="text-xs font-semibold uppercase text-primary">
+            <div className="ch-section-eyebrow">
               {item.step}
             </div>
-            <div className="mt-2 text-sm font-semibold text-card-foreground">
+            <div className="mt-2 text-base font-semibold text-card-foreground">
               {item.title}
             </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 text-base leading-7 text-muted-foreground">
               {item.description}
             </p>
           </div>
@@ -555,7 +560,7 @@ const OAuthFlowPanel = () => {
 
 const SecurityConsole = () => {
   return (
-    <div className="codehorse-panel rounded-lg p-4">
+    <div className="codehorse-panel rounded-lg p-5">
       <div className="rounded-lg border border-border bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
@@ -563,11 +568,11 @@ const SecurityConsole = () => {
             <span className="size-2 rounded-full bg-warning" />
             <span className="size-2 rounded-full bg-success" />
           </div>
-          <div className="text-xs text-muted-foreground">auth-flow.ts</div>
+          <div className="text-base text-muted-foreground">auth-flow.ts</div>
         </div>
 
-        <div className="grid gap-4 p-5 lg:grid-cols-[1fr_0.8fr]">
-          <div className="font-mono text-sm leading-7 text-muted-foreground">
+        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_0.8fr]">
+          <div className="font-mono text-base leading-7 text-muted-foreground">
             <div>
               <span className="text-chart-3">const</span>{" "}
               <span className="text-foreground">session</span>{" "}
@@ -592,8 +597,8 @@ const SecurityConsole = () => {
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-muted/50 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Redirect</span>
-                <span className="text-xs font-medium text-success">
+                <span className="text-base text-muted-foreground">Redirect</span>
+                <span className="text-base font-medium text-success">
                   Verified
                 </span>
               </div>
@@ -602,15 +607,15 @@ const SecurityConsole = () => {
               </div>
             </div>
             <div className="rounded-lg border border-border bg-muted/50 p-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
+              <div className="flex items-center gap-2 text-base font-medium">
                 <GitPullRequest className="size-4 text-chart-3" />
                 Pull request context
               </div>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              <p className="mt-2 text-base leading-7 text-muted-foreground">
                 Repository access and developer identity arrive together.
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-xs font-medium text-success">
+            <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-base font-medium text-success">
               <Clock3 className="size-3.5" />
               Ready in seconds
             </div>

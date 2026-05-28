@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
-  ExternalLink,
-  Eye,
   GitBranch,
   GitPullRequest,
   LayoutList,
@@ -275,7 +273,7 @@ const ReviewsPage = () => {
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <ReviewHeader
           accountEmail={accountEmail}
           accountInitial={accountInitial}
@@ -285,7 +283,7 @@ const ReviewsPage = () => {
           onTriggerReview={focusManualReview}
         />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           {statCards.map((item) => (
             <ReviewMetricCard
               isLoading={isStatsLoading}
@@ -295,7 +293,7 @@ const ReviewsPage = () => {
           ))}
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+        <section className="space-y-5">
           <div className="min-w-0 space-y-5">
             <ManualReviewPanel
               feedback={activeManualFeedback}
@@ -332,7 +330,7 @@ const ReviewsPage = () => {
                 onTriggerReview={focusManualReview}
               />
             ) : (
-              <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+              <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
                 <ReviewQueue
                   reviews={reviewList}
                   viewMode={viewMode}
@@ -345,13 +343,7 @@ const ReviewsPage = () => {
             )}
 
             <WorkflowSection />
-            <ExampleReviewPreview />
           </div>
-
-          <aside className="space-y-4">
-            <ReviewIntelligencePanel stats={stats} />
-            <ReviewSystemPanel />
-          </aside>
         </section>
       </div>
     </div>
@@ -374,9 +366,9 @@ const ReviewHeader = ({
   onTriggerReview: () => void;
 }) => {
   return (
-    <header className="codehorse-panel rounded-lg p-4">
+    <header className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-5">
           <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
             <Bot className="size-5" />
           </div>
@@ -386,15 +378,11 @@ const ReviewHeader = ({
                 <Sparkles className="size-3" />
                 Pull request intelligence
               </Badge>
-              <Badge className="border-success/20 bg-success/10 text-success">
-                <span className="size-1.5 animate-pulse rounded-full bg-success" />
-                All systems operational
-              </Badge>
             </div>
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               AI Review Cockpit
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
               Inspect AI-generated GitHub pull request reviews, trace failures,
               and jump back to the original PR.
             </p>
@@ -403,7 +391,7 @@ const ReviewHeader = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             disabled={isFetching}
             onClick={onSync}
             type="button"
@@ -413,7 +401,7 @@ const ReviewHeader = ({
             Sync GitHub
           </Button>
           <Button
-            className="h-10 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
+            className="h-11 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
             onClick={onTriggerReview}
             type="button"
           >
@@ -421,14 +409,14 @@ const ReviewHeader = ({
             Trigger Review
           </Button>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
               {accountInitial || "P"}
             </div>
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-base font-medium text-foreground">
                 @{accountName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-base text-muted-foreground">
                 {accountEmail}
               </p>
             </div>
@@ -454,10 +442,10 @@ const ReviewMetricCard = ({
   };
 }) => {
   return (
-    <article className="codehorse-panel group rounded-lg p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
+    <article className="codehorse-panel group rounded-lg p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">{item.label}</p>
+          <p className="text-base text-muted-foreground">{item.label}</p>
           <div className="mt-2 min-h-9 text-3xl font-semibold tracking-tight text-foreground">
             {isLoading ? <Skeleton className="h-9 w-16" /> : item.value}
           </div>
@@ -466,7 +454,7 @@ const ReviewMetricCard = ({
           <item.icon className={cn("size-4", item.tone)} />
         </div>
       </div>
-      <p className="mt-4 text-xs leading-5 text-muted-foreground">
+      <p className="mt-4 text-base leading-7 text-muted-foreground">
         {item.helper}
       </p>
     </article>
@@ -496,14 +484,14 @@ const ManualReviewPanel = ({
     <section className="codehorse-panel-strong overflow-hidden rounded-lg p-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-xl">
-          <div className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-base font-medium text-primary">
             <Sparkles className="size-3.5" />
             Manual review queue
           </div>
           <h2 className="mt-4 text-2xl font-semibold tracking-normal text-foreground">
             Trigger Manual Review
           </h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 text-base leading-7 text-muted-foreground">
             Paste a GitHub pull request URL or use owner/repo#number to queue an
             AI review run.
           </p>
@@ -514,7 +502,7 @@ const ManualReviewPanel = ({
             <GitPullRequest className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               aria-invalid={validation === "invalid"}
-              className="h-12 rounded-lg border-border bg-background/70 pl-9 text-sm"
+              className="h-12 rounded-lg border-border bg-background/70 pl-9 text-base"
               onBlur={onTouched}
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={(event) => {
@@ -552,7 +540,7 @@ const ManualReviewPanel = ({
               </Link>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Example:{" "}
             <button
               className="font-mono text-primary underline-offset-4 hover:underline"
@@ -563,7 +551,7 @@ const ManualReviewPanel = ({
             </button>
           </p>
           <ManualFeedback feedback={feedback} />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Manual reviews run against connected repositories only.
           </p>
         </div>
@@ -598,8 +586,8 @@ const ManualFeedback = ({
       <div className="flex items-start gap-2">
         <Icon className="mt-0.5 size-4 shrink-0" />
         <div>
-          <p className="text-xs font-semibold">{feedback.title}</p>
-          <p className="mt-0.5 text-xs leading-5 opacity-90">
+          <p className="text-base font-semibold">{feedback.title}</p>
+          <p className="mt-0.5 text-base leading-7 opacity-90">
             {feedback.message}
           </p>
         </div>
@@ -637,7 +625,7 @@ const ReviewControls = ({
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="h-10 rounded-lg border-border bg-background/60 pl-9 text-sm"
+            className="h-11 rounded-lg border-border bg-background/60 pl-9 text-base"
             placeholder="Search reviews..."
             ref={searchInputRef}
             value={search}
@@ -716,7 +704,7 @@ const ControlSelect = ({
   onChange: (value: string) => void;
 }) => {
   return (
-    <div className="flex h-10 min-w-[11rem] items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-sm text-muted-foreground">
+    <div className="flex h-10 min-w-[11rem] items-center gap-2 rounded-lg border border-border bg-background/60 px-3 text-base text-muted-foreground">
       <Icon className="size-4" />
       <NativeSelect
         aria-label={label}
@@ -745,7 +733,7 @@ const ViewButton = ({
     <button
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-base font-medium text-muted-foreground transition-colors hover:text-foreground",
         active && "bg-card text-foreground shadow-sm",
       )}
       onClick={onClick}
@@ -765,13 +753,13 @@ const ReviewQueue = ({
   viewMode: ReviewViewMode;
 }) => {
   return (
-    <section className="codehorse-panel rounded-lg p-4">
+    <section className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-foreground">
             Review Queue
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             {reviews.length} review{reviews.length === 1 ? "" : "s"} matching
             your filters.
           </p>
@@ -803,7 +791,7 @@ const ReviewRow = ({
   viewMode: ReviewViewMode;
 }) => {
   return (
-    <article className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
+    <article className="rounded-lg border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -819,13 +807,13 @@ const ReviewRow = ({
             <h3 className="line-clamp-2 font-semibold text-foreground">
               {review.prTitle}
             </h3>
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <p className="mt-1 flex items-center gap-1 text-base text-muted-foreground">
               <Clock3 className="size-3" />
               {dateFormatter.format(new Date(review.createdAt))}
             </p>
           </div>
           {viewMode === "list" ? (
-            <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+            <p className="line-clamp-3 text-base leading-7 text-muted-foreground">
               {getVisibleReviewBody(review.review) || "No output recorded yet."}
             </p>
           ) : null}
@@ -849,13 +837,13 @@ const LatestReview = ({
   latestReviewBody: string;
 }) => {
   return (
-    <section className="codehorse-panel rounded-lg p-4">
+    <section className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-foreground">
             Latest Review
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             A focused preview of the newest generated review.
           </p>
         </div>
@@ -865,10 +853,10 @@ const LatestReview = ({
       <div className="mt-4">
         {latestReview ? (
           <>
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     {latestReview.repositoryFullName}
                   </p>
                   <h3 className="mt-1 line-clamp-2 text-xl font-semibold tracking-tight text-foreground">
@@ -893,7 +881,7 @@ const LatestReview = ({
                   <TabsTrigger value="raw">Raw</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview">
-                  <pre className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+                  <pre className="whitespace-pre-wrap break-words text-base leading-7 text-foreground">
                     {latestReviewBody}
                   </pre>
                 </TabsContent>
@@ -910,13 +898,13 @@ const LatestReview = ({
                       </a>
                     </Button>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       No inline comments were posted for this run.
                     </p>
                   )}
                 </TabsContent>
                 <TabsContent value="timeline">
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-base">
                     <TimelineRow label="Status" value={latestReview.status} />
                     <TimelineRow label="Mode" value={latestReview.mode} />
                     <TimelineRow label="Action" value={latestReview.action} />
@@ -937,7 +925,7 @@ const LatestReview = ({
                   </div>
                 </TabsContent>
                 <TabsContent value="raw">
-                  <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-muted-foreground">
+                  <pre className="whitespace-pre-wrap break-words text-base leading-7 text-muted-foreground">
                     {latestReview.review}
                   </pre>
                 </TabsContent>
@@ -972,7 +960,7 @@ const EmptyReviews = ({
         <h2 className="mt-8 text-2xl font-semibold tracking-normal text-foreground">
           No AI reviews yet
         </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+        <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-muted-foreground">
           Open or update a pull request on a connected repository, or trigger a
           manual review to generate your first AI-powered code review.
         </p>
@@ -1005,11 +993,11 @@ const ReviewEmptyIllustration = () => {
   return (
     <div className="relative mx-auto h-64 max-w-lg">
       <div className="absolute inset-x-12 top-6 h-44 rounded-full bg-primary/10 blur-3xl" />
-      <div className="codehorse-panel relative mx-auto flex h-56 max-w-md flex-col rounded-lg p-4 text-left">
+      <div className="codehorse-panel relative mx-auto flex h-56 max-w-md flex-col rounded-lg p-5 text-left">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <GitPullRequest className="size-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-base font-semibold text-foreground">
               Pull request #42
             </span>
           </div>
@@ -1019,17 +1007,17 @@ const ReviewEmptyIllustration = () => {
         </div>
         <div className="mt-4 space-y-3">
           <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <div className="flex items-center gap-2 text-base font-medium text-foreground">
               <GitHubMark className="size-4" />
               Prachi2519/CodeHorse
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-base text-muted-foreground">
               AI review will summarize risks, quality issues, and actionable
               fixes.
             </p>
           </div>
           <div className="ml-10 rounded-lg border border-success/20 bg-success/10 p-3 text-success">
-            <div className="flex items-center gap-2 text-xs font-semibold">
+            <div className="flex items-center gap-2 text-base font-semibold">
               <Sparkles className="size-3.5" />
               CodeHorse review comment
             </div>
@@ -1069,192 +1057,33 @@ const WorkflowSection = () => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           How reviews work
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           From pull request to feedback in three steps
         </h2>
       </div>
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         {steps.map((step, index) => (
           <div
-            className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
+            className="rounded-lg border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
             key={step.title}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="rounded-lg border border-border bg-muted/60 p-2 text-primary">
                 <step.icon className="size-4" />
               </div>
-              <span className="text-xs font-semibold text-muted-foreground">
+              <span className="text-base font-semibold text-muted-foreground">
                 Step {index + 1}
               </span>
             </div>
             <h3 className="mt-4 font-semibold text-foreground">{step.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 text-base leading-7 text-muted-foreground">
               {step.description}
             </p>
           </div>
         ))}
-      </div>
-    </section>
-  );
-};
-
-const ReviewIntelligencePanel = ({
-  stats,
-}: {
-  stats?: {
-    total: number;
-    completed: number;
-    failed: number;
-    running: number;
-    repositories: number;
-  };
-}) => {
-  const signals = [
-    {
-      label: "AI review engine ready",
-      value: "Ready",
-      icon: Bot,
-      tone: "text-success",
-    },
-    {
-      label: `${stats?.total ?? 0} reviews generated`,
-      value: "Tracked",
-      icon: MessageSquareText,
-      tone: "text-primary",
-    },
-    {
-      label:
-        (stats?.failed ?? 0) === 0
-          ? "No failed runs detected"
-          : `${stats?.failed ?? 0} failed runs detected`,
-      value: (stats?.failed ?? 0) === 0 ? "Clean" : "Review",
-      icon: ShieldAlert,
-      tone: (stats?.failed ?? 0) === 0 ? "text-success" : "text-danger",
-    },
-    {
-      label: "Manual review queue available",
-      value: "Online",
-      icon: Rocket,
-      tone: "text-warning",
-    },
-    {
-      label: "GitHub sync active",
-      value: "Live",
-      icon: GitHubMark,
-      tone: "text-chart-3",
-    },
-  ];
-
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Review Intelligence
-        </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
-          Engine signals
-        </h2>
-      </div>
-      <div className="mt-5 space-y-3">
-        {signals.map((signal) => (
-          <div
-            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3"
-            key={signal.label}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="rounded-lg border border-border bg-card p-2">
-                <signal.icon className={cn("size-4", signal.tone)} />
-              </div>
-              <p className="min-w-0 text-sm leading-5 text-muted-foreground">
-                {signal.label}
-              </p>
-            </div>
-            <span className="shrink-0 text-xs font-medium text-foreground">
-              {signal.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};
-
-const ReviewSystemPanel = () => {
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            Review pipeline
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Token-backed analytics enabled
-          </p>
-        </div>
-        <span className="flex size-10 items-center justify-center rounded-lg bg-success/10 text-success ring-1 ring-success/20">
-          <ShieldCheck className="size-5" />
-        </span>
-      </div>
-      <div className="mt-4 h-2 rounded-full bg-muted">
-        <div className="h-full w-full rounded-full bg-gradient-to-r from-success via-primary to-chart-3" />
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-success">
-        <span className="size-1.5 animate-pulse rounded-full bg-success" />
-        All systems operational
-      </div>
-    </section>
-  );
-};
-
-const ExampleReviewPreview = () => {
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Example preview
-          </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
-            Future review row design
-          </h2>
-        </div>
-        <Badge className="w-fit border-border bg-muted/60 text-muted-foreground">
-          Not real data
-        </Badge>
-      </div>
-      <div className="mt-5 rounded-lg border border-border bg-card p-4 opacity-80">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status="completed" />
-              <Badge className="border-warning/20 bg-warning/10 text-warning">
-                Medium risk
-              </Badge>
-              <Badge className="border-primary/20 bg-primary/10 text-primary">
-                6 findings
-              </Badge>
-            </div>
-            <h3 className="mt-3 truncate font-semibold text-foreground">
-              Harden auth callback error handling
-            </h3>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              Prachi2519/CodeHorse · PR #42 · 38s duration
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button disabled size="sm" variant="outline">
-              <ExternalLink className="size-3.5" />
-              GitHub PR
-            </Button>
-            <Button disabled size="sm">
-              <Eye className="size-3.5" />
-              Open Review
-            </Button>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -1382,8 +1211,8 @@ const getManualHelperFeedback = (
 
 const ReviewSkeleton = ({ viewMode }: { viewMode: ReviewViewMode }) => {
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <div className="codehorse-panel rounded-lg p-4">
+    <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="codehorse-panel rounded-lg p-5">
         <Skeleton className="h-6 w-36" />
         <Skeleton className="mt-2 h-4 w-64" />
         <div className="mt-5 space-y-3">
@@ -1400,7 +1229,7 @@ const ReviewSkeleton = ({ viewMode }: { viewMode: ReviewViewMode }) => {
           )}
         </div>
       </div>
-      <div className="codehorse-panel rounded-lg p-4">
+      <div className="codehorse-panel rounded-lg p-5">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="mt-2 h-4 w-72" />
         <Skeleton className="mt-5 h-[520px] w-full rounded-lg" />

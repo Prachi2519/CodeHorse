@@ -2,8 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import { Laptop, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
 
+import { useTheme } from "@/components/ui/providers/theme-providers";
 import { cn } from "@/lib/utils";
 
 const themeOptions = [
@@ -29,7 +29,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       <div
         aria-hidden="true"
         className={cn(
-          "h-9 w-[7.25rem] rounded-lg bg-muted sm:w-[13.5rem]",
+          "h-11 w-[7.25rem] rounded-lg bg-muted sm:w-[13.5rem]",
           className,
         )}
       />
@@ -51,7 +51,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-label={`Use ${option.label.toLowerCase()} theme`}
             aria-pressed={isActive}
             className={cn(
-              "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+              "inline-flex h-10 items-center justify-center gap-1.5 rounded-md px-2 text-sm leading-5 font-medium text-muted-foreground transition-colors hover:text-foreground",
               isActive && "bg-card text-foreground shadow-sm",
             )}
             key={option.value}

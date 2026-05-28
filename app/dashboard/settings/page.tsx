@@ -123,27 +123,6 @@ const notificationDefaults = [
   },
 ];
 
-const activityRows = [
-  {
-    title: "GitHub account synced",
-    description: "Token-backed workspace signals refreshed.",
-    timestamp: "Recently",
-    icon: GitHubMark,
-  },
-  {
-    title: "Repository CodeHorse connected",
-    description: "Prachi2519/CodeHorse is ready for AI review workflows.",
-    timestamp: "26/05/2026",
-    icon: GitBranch,
-  },
-  {
-    title: "Token-backed analytics enabled",
-    description: "GitHub analytics pipeline is active.",
-    timestamp: "Recently",
-    icon: ShieldCheck,
-  },
-];
-
 const SettingsPage = () => {
   const queryClient = useQueryClient();
   const [deletingRepoId, setDeletingRepoId] = useState<string | null>(null);
@@ -282,7 +261,7 @@ const SettingsPage = () => {
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <SettingsHeader
           accountEmail={userEmail}
           accountInitial={userInitial}
@@ -294,7 +273,7 @@ const SettingsPage = () => {
           <TabsList className="codehorse-panel flex h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-2">
             {settingsTabs.map((tab) => (
               <TabsTrigger
-                className="h-9 flex-none rounded-lg px-3 text-sm"
+                className="h-10 flex-none rounded-lg px-3 text-base"
                 key={tab.value}
                 value={tab.value}
               >
@@ -326,7 +305,6 @@ const SettingsPage = () => {
               </div>
               <aside className="space-y-5">
                 <WorkspacePreferencesCard />
-                <RecentSettingsActivity />
               </aside>
             </section>
           </TabsContent>
@@ -350,7 +328,6 @@ const SettingsPage = () => {
           <TabsContent className="space-y-5" value="security">
             <section className="grid gap-5 xl:grid-cols-[1fr_380px]">
               <SecurityAccessCard />
-              <RecentSettingsActivity />
             </section>
           </TabsContent>
 
@@ -360,7 +337,6 @@ const SettingsPage = () => {
                 notifications={notifications}
                 onToggle={toggleNotification}
               />
-              <RecentSettingsActivity />
             </section>
           </TabsContent>
 
@@ -398,9 +374,9 @@ const SettingsHeader = ({
   onSyncGitHub: () => void;
 }) => {
   return (
-    <header className="codehorse-panel rounded-lg p-4">
+    <header className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-5">
           <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
             <Settings className="size-5" />
           </div>
@@ -418,7 +394,7 @@ const SettingsHeader = ({
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               Settings
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
               Manage your account, connected repositories, security, and
               workspace preferences.
             </p>
@@ -427,7 +403,7 @@ const SettingsHeader = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             onClick={onSyncGitHub}
             type="button"
             variant="outline"
@@ -436,14 +412,14 @@ const SettingsHeader = ({
             Sync GitHub
           </Button>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
               {accountInitial || "P"}
             </div>
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-base font-medium text-foreground">
                 @{accountName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-base text-muted-foreground">
                 {accountEmail}
               </p>
             </div>
@@ -475,13 +451,13 @@ const ProfileSettingsCard = ({
     <section className="codehorse-panel-strong rounded-lg p-5">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Profile
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-normal text-foreground">
             Profile Settings
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
             Update your profile information and GitHub-linked identity.
           </p>
         </div>
@@ -505,7 +481,7 @@ const ProfileSettingsCard = ({
       </div>
 
       <form
-        className="mt-6 grid gap-4 lg:grid-cols-3"
+        className="mt-6 grid gap-5 lg:grid-cols-3"
         key={`${initialName}-${initialEmail}`}
         onSubmit={onSubmit}
       >
@@ -576,12 +552,12 @@ const ConnectedGitHubCard = ({
 }) => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Account
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
+          <h2 className="mt-2 text-xl font-semibold text-foreground">
             Connected GitHub Account
           </h2>
         </div>
@@ -639,15 +615,15 @@ const ConnectedRepositoriesCard = ({
 }) => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Repositories
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
+          <h2 className="mt-2 text-xl font-semibold text-foreground">
             Connected Repositories
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
             Manage GitHub repositories connected to CodeHorse for AI reviews
             and analytics.
           </p>
@@ -683,7 +659,7 @@ const ConnectedRepositoriesCard = ({
             <h3 className="mt-4 font-semibold text-foreground">
               No repositories connected yet
             </h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            <p className="mx-auto mt-2 max-w-md text-base text-muted-foreground">
               Connect repositories from the Repository page to enable analytics
               and AI-powered reviews.
             </p>
@@ -718,8 +694,8 @@ const RepositoryRow = ({
   const isDeleting = deletingRepoId === repository.id;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="rounded-lg border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate font-semibold text-foreground">
@@ -732,10 +708,10 @@ const RepositoryRow = ({
               Ready
             </Badge>
           </div>
-          <p className="mt-1 truncate text-sm text-muted-foreground">
+          <p className="mt-1 truncate text-base text-muted-foreground">
             {repository.fullName}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             Connected date: {formatDate(repository.createdAt)}
           </p>
         </div>
@@ -828,12 +804,12 @@ const SecurityAccessCard = ({ compact = false }: { compact?: boolean }) => {
 
   return (
     <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Security
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
+          <h2 className="mt-2 text-xl font-semibold text-foreground">
             Security & Access
           </h2>
         </div>
@@ -857,7 +833,7 @@ const SecurityAccessCard = ({ compact = false }: { compact?: boolean }) => {
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {items.map((item) => (
           <div
-            className="rounded-lg border border-border bg-card p-4"
+            className="rounded-lg border border-border bg-card p-5"
             key={item.title}
           >
             <div className="flex items-start gap-3">
@@ -866,7 +842,7 @@ const SecurityAccessCard = ({ compact = false }: { compact?: boolean }) => {
               </span>
               <div>
                 <h3 className="font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                <p className="mt-1 text-base leading-7 text-muted-foreground">
                   {item.description}
                 </p>
               </div>
@@ -888,25 +864,25 @@ const NotificationPreferencesCard = ({
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Notifications
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Notification Preferences
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
           Choose which workspace events should reach you immediately.
         </p>
       </div>
       <div className="mt-5 space-y-3">
         {notificationDefaults.map((item) => (
           <div
-            className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4"
+            className="flex items-center justify-between gap-5 rounded-lg border border-border bg-card p-5"
             key={item.id}
           >
             <div>
               <h3 className="font-semibold text-foreground">{item.label}</h3>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              <p className="mt-1 text-base leading-7 text-muted-foreground">
                 {item.description}
               </p>
             </div>
@@ -925,10 +901,10 @@ const WorkspacePreferencesCard = ({ compact = false }: { compact?: boolean }) =>
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Workspace
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Workspace Preferences
         </h2>
       </div>
@@ -942,7 +918,7 @@ const WorkspacePreferencesCard = ({ compact = false }: { compact?: boolean }) =>
           options={["On focus", "Manual", "Every 5 minutes"]}
         />
         <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Theme</p>
+          <p className="mb-2 text-base font-medium text-foreground">Theme</p>
           <ThemeToggle />
         </div>
         {!compact ? (
@@ -965,7 +941,7 @@ const PreferenceSelect = ({
 }) => {
   return (
     <div>
-      <span className="mb-2 block text-sm font-medium text-foreground">
+      <span className="mb-2 block text-base font-medium text-foreground">
         {label}
       </span>
       <NativeSelect aria-label={label} className="w-full">
@@ -989,10 +965,10 @@ const IntegrationsCard = ({
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Integrations
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Connected services
         </h2>
       </div>
@@ -1042,7 +1018,7 @@ const IntegrationRow = ({
   onAction: () => void;
 }) => {
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-5 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <span className="rounded-lg border border-border bg-muted/60 p-2 text-primary">
           <Icon className="size-4" />
@@ -1054,7 +1030,7 @@ const IntegrationRow = ({
               {status}
             </Badge>
           </div>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          <p className="mt-1 text-base leading-7 text-muted-foreground">
             {description}
           </p>
         </div>
@@ -1076,15 +1052,15 @@ const IntegrationRow = ({
 const BillingSettingsCard = () => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Billing
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
+          <h2 className="mt-2 text-xl font-semibold text-foreground">
             Plan and billing controls
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
             Manage subscription access and billing readiness for the workspace.
           </p>
         </div>
@@ -1119,46 +1095,6 @@ const BillingSettingsCard = () => {
   );
 };
 
-const RecentSettingsActivity = () => {
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Audit
-        </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
-          Recent Settings Activity
-        </h2>
-      </div>
-      <div className="mt-5 space-y-3">
-        {activityRows.map((row) => (
-          <div
-            className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
-            key={row.title}
-          >
-            <span className="rounded-lg border border-border bg-muted/60 p-2 text-success">
-              <row.icon className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-foreground">
-                  {row.title}
-                </h3>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {row.timestamp}
-                </span>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {row.description}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};
-
 const FieldBlock = ({
   children,
   label,
@@ -1168,7 +1104,7 @@ const FieldBlock = ({
 }) => {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-foreground">
+      <span className="mb-2 block text-base font-medium text-foreground">
         {label}
       </span>
       {children}
@@ -1189,11 +1125,11 @@ const SignalTile = ({
 }) => {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-base text-muted-foreground">
         <Icon className={cn("size-3.5", tone)} />
         {label}
       </div>
-      <div className="mt-2 truncate text-sm font-semibold text-foreground">
+      <div className="mt-2 truncate text-base font-semibold text-foreground">
         {value}
       </div>
     </div>

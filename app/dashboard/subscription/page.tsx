@@ -10,16 +10,12 @@ import {
   CreditCard,
   Crown,
   FileClock,
-  Gauge,
   GitBranch,
   GitPullRequest,
-  History,
   Loader2,
-  MessageSquareCode,
   Rocket,
   ShieldCheck,
   Sparkles,
-  Stethoscope,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -125,37 +121,6 @@ const usageItems = [
   },
 ];
 
-const upgradeValueCards = [
-  {
-    title: "Review pull requests faster",
-    description:
-      "Move from broad summaries to tighter review loops with faster AI runs.",
-    icon: Gauge,
-    tone: "text-primary",
-  },
-  {
-    title: "Get inline AI code suggestions",
-    description:
-      "Surface focused comments next to the code that needs attention.",
-    icon: MessageSquareCode,
-    tone: "text-success",
-  },
-  {
-    title: "Debug failed review runs",
-    description:
-      "Trace review failures with diagnostics built for engineering teams.",
-    icon: Stethoscope,
-    tone: "text-warning",
-  },
-  {
-    title: "Track review history across repositories",
-    description:
-      "Keep review output, PR context, and repository activity connected.",
-    icon: History,
-    tone: "text-chart-3",
-  },
-];
-
 const SubscriptionPage = () => {
   const [currentPlan, setCurrentPlan] = useState<PlanId>("free");
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
@@ -199,7 +164,7 @@ const SubscriptionPage = () => {
       <div className="codehorse-app-gradient pointer-events-none fixed inset-0" />
       <div className="codehorse-grid-overlay pointer-events-none fixed inset-0" />
 
-      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <SubscriptionHeader
           accountEmail={accountEmail}
           accountInitial={accountInitial}
@@ -231,7 +196,6 @@ const SubscriptionPage = () => {
         <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
           <div className="space-y-5">
             <PlanComparisonTable />
-            <UpgradeValueSection />
           </div>
           <aside className="space-y-5">
             <BillingReadinessPanel />
@@ -255,9 +219,9 @@ const SubscriptionHeader = ({
   onManageBilling: () => void;
 }) => {
   return (
-    <header className="codehorse-panel rounded-lg p-4">
+    <header className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-5">
           <div className="codehorse-brand-gradient flex size-12 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
             <CreditCard className="size-5" />
           </div>
@@ -275,7 +239,7 @@ const SubscriptionHeader = ({
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               Subscription
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground sm:text-base">
               Choose the plan that fits your code review workflow.
             </p>
           </div>
@@ -283,7 +247,7 @@ const SubscriptionHeader = ({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            className="h-10 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
+            className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             onClick={onManageBilling}
             type="button"
             variant="outline"
@@ -292,14 +256,14 @@ const SubscriptionHeader = ({
             Manage Billing
           </Button>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-sm font-semibold text-primary-foreground">
+            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
               {accountInitial || "P"}
             </div>
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-medium text-foreground">
+              <p className="truncate text-base font-medium text-foreground">
                 @{accountName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-base text-muted-foreground">
                 {accountEmail}
               </p>
             </div>
@@ -342,10 +306,10 @@ const CurrentPlanCard = ({
             </span>
             <span className="pb-1 text-xl font-medium text-muted-foreground">
               {currentPlan.price}
-              <span className="text-sm">{currentPlan.cadence}</span>
+              <span className="text-base">{currentPlan.cadence}</span>
             </span>
           </div>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
+          <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
             {isFree
               ? "Explore CodeHorse with basic repository indexing and standard AI review summaries."
               : currentPlan.description}
@@ -368,7 +332,7 @@ const CurrentPlanCard = ({
       </div>
 
       <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-base text-muted-foreground">
           {isFree
             ? "Pro unlocks inline suggestions, deeper diagnostics, and faster indexing."
             : "Your workspace is running on the recommended review pipeline."}
@@ -412,11 +376,11 @@ const PlanSignal = ({
 }) => {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-base text-muted-foreground">
         <Icon className="size-3.5 text-primary" />
         {label}
       </div>
-      <div className="mt-2 text-lg font-semibold text-foreground">{value}</div>
+      <div className="mt-2 text-xl font-semibold text-foreground">{value}</div>
     </div>
   );
 };
@@ -448,7 +412,7 @@ const PricingCard = ({
         {isPro ? (
           <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-primary/20 blur-3xl" />
         ) : null}
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="relative flex items-start justify-between gap-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge
@@ -465,7 +429,7 @@ const PricingCard = ({
               {plan.name}
               {isPro ? <Sparkles className="size-5 text-warning" /> : null}
             </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-3 max-w-xl text-base leading-7 text-muted-foreground">
               {plan.description}
             </p>
           </div>
@@ -480,12 +444,12 @@ const PricingCard = ({
           <span className="text-5xl font-semibold tracking-tight text-foreground">
             {plan.price}
           </span>
-          <span className="pb-1 text-sm text-muted-foreground">
+          <span className="pb-1 text-base text-muted-foreground">
             {plan.cadence}
           </span>
         </div>
 
-        <ul className="relative mt-6 space-y-3 text-sm text-muted-foreground">
+        <ul className="relative mt-6 space-y-3 text-base text-muted-foreground">
           {plan.features.map((feature) => (
             <li className="flex items-start gap-2" key={feature}>
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
@@ -526,16 +490,16 @@ const PlanComparisonTable = () => {
   return (
     <section className="codehorse-panel overflow-hidden rounded-lg">
       <div className="border-b border-border p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="ch-section-eyebrow">
           Plan comparison
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
+        <h2 className="mt-2 text-xl font-semibold text-foreground">
           Compare workflow capabilities
         </h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="border-b border-border text-xs uppercase tracking-[0.16em] text-muted-foreground">
+        <table className="w-full min-w-[760px] text-left text-base">
+          <thead className="border-b border-border text-base uppercase tracking-[0.16em] text-muted-foreground">
             <tr>
               <th className="px-5 py-3 font-semibold">Feature</th>
               <th className="px-5 py-3 font-semibold">Free</th>
@@ -545,13 +509,13 @@ const PlanComparisonTable = () => {
           <tbody className="divide-y divide-border">
             {comparisonRows.map((row) => (
               <tr className="transition-colors hover:bg-muted/30" key={row.feature}>
-                <td className="px-5 py-4 font-medium text-foreground">
+                <td className="px-5 py-5 font-medium text-foreground">
                   {row.feature}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-5 py-5">
                   <ComparisonValue value={row.free} />
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-5 py-5">
                   <ComparisonValue pro value={row.pro} />
                 </td>
               </tr>
@@ -580,7 +544,7 @@ const ComparisonValue = ({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-2 rounded-lg px-2.5 py-1 text-base font-medium",
         pro
           ? "bg-primary/10 text-primary"
           : isIncluded
@@ -599,10 +563,10 @@ const UsagePanel = () => {
     <section className="codehorse-panel rounded-lg p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <p className="ch-section-eyebrow">
             Usage This Month
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground">
+          <h2 className="mt-2 text-xl font-semibold text-foreground">
             Workspace consumption
           </h2>
         </div>
@@ -614,7 +578,7 @@ const UsagePanel = () => {
       <div className="mt-5 space-y-4">
         {usageItems.map((item) => (
           <div key={item.label}>
-            <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center justify-between gap-3 text-base">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <item.icon className={cn("size-4", item.tone)} />
                 {item.label}
@@ -634,46 +598,15 @@ const UsagePanel = () => {
   );
 };
 
-const UpgradeValueSection = () => {
-  return (
-    <section className="codehorse-panel rounded-lg p-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          Why upgrade to Pro?
-        </p>
-        <h2 className="mt-2 text-lg font-semibold text-foreground">
-          Built for serious review workflows
-        </h2>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        {upgradeValueCards.map((card) => (
-          <div
-            className="rounded-lg border border-border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
-            key={card.title}
-          >
-            <div className="rounded-lg border border-border bg-muted/60 p-2">
-              <card.icon className={cn("size-4", card.tone)} />
-            </div>
-            <h3 className="mt-4 font-semibold text-foreground">{card.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {card.description}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};
-
 const BillingReadinessPanel = () => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-base font-semibold text-foreground">
             Billing readiness
           </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          <p className="mt-1 text-base leading-7 text-muted-foreground">
             Your workspace is eligible for Pro upgrade.
           </p>
         </div>
@@ -692,7 +625,7 @@ const BillingReadinessPanel = () => {
 
 const ReadinessRow = ({ label, value }: { label: string; value: string }) => {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 text-base">
       <span className="text-muted-foreground">{label}</span>
       <span className="inline-flex items-center gap-1.5 font-medium text-success">
         <CheckCircle2 className="size-3.5" />
@@ -710,17 +643,17 @@ const SecurityNote = () => {
           <ShieldCheck className="size-5" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="text-base font-semibold text-foreground">
             Secure billing and GitHub access
           </h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 text-base leading-7 text-muted-foreground">
             CodeHorse uses token-backed GitHub analytics and secure billing
             flows. Your GitHub credentials are never stored.
           </p>
         </div>
       </div>
       <div className="mt-5 rounded-lg border border-border bg-muted/40 p-3">
-        <div className="flex items-center gap-2 text-xs text-success">
+        <div className="flex items-center gap-2 text-base text-success">
           <FileClock className="size-3.5" />
           Audit-friendly workspace signals
         </div>

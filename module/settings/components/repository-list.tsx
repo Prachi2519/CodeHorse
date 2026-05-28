@@ -170,7 +170,7 @@ export function RepositoryList() {
                   <p className="truncate text-sm text-muted-foreground">
                     {repo.fullName}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
                     Connected {new Date(repo.createdAt).toLocaleDateString()}
                   </p>
                 </div>
