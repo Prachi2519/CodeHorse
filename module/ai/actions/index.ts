@@ -14,12 +14,36 @@ type ReviewPullRequestOptions = {
   idempotencyKey?: string;
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Unknown Error";
+
+const getReviewErrorMessage = (
+  error: unknown,
+  stage: "setup" | "github" | "event",
+) => {
+  const message = getErrorMessage(error);
+
+  if (stage === "event" && message.toLowerCase().includes("fetch failed")) {
+    return "Review runner is not reachable. Start the Inngest dev server with `npm run inngest` in another terminal, then queue the review again.";
+  }
+
+  if (stage === "github" && message.toLowerCase().includes("fetch failed")) {
+    return "CodeHorse could not reach GitHub to verify this pull request. Check your network connection and try again.";
+  }
+
+  return message;
+};
+
 export async function reviewPullRequest(
   owner: string,
   repo: string,
   prNumber: number,
   options: ReviewPullRequestOptions = {},
 ) {
+  let failureStage: "setup" | "github" | "event" = "setup";
+  let repositoryId: string | null = null;
+  let queuedReviewId: string | null = null;
+
   try {
     if (!Number.isInteger(prNumber)) {
       throw new Error("Invalid pull request number");
@@ -48,6 +72,7 @@ export async function reviewPullRequest(
         `Repository ${owner}/${repo} not found in database. Please reconnect the repository.`,
       );
     }
+    repositoryId = repository.id;
     const githubAccount = repository.user.accounts[0];
 
     if (!githubAccount?.accessToken) {
@@ -66,6 +91,7 @@ export async function reviewPullRequest(
       options.idempotencyKey ??
       [deliveryId, owner, repo, prNumber, action, headSha].join(":");
 
+    failureStage = "github";
     await getPullRequestDiff(token, owner, repo, prNumber);
     const queuedReview = await prisma.review.create({
       data: {
@@ -90,7 +116,9 @@ export async function reviewPullRequest(
         status: "queued",
       },
     });
+    queuedReviewId = queuedReview.id;
 
+    failureStage = "event";
     const eventResponse = await inngest.send({
       name: "pr.review.requested",
       data: {
@@ -129,10 +157,15 @@ export async function reviewPullRequest(
     };
   } catch (error) {
     try {
-      const repository = await prisma.repository.findFirst({
-        where: { owner, name: repo },
-      });
-      if (repository) {
+      const repository =
+        repositoryId !== null
+          ? { id: repositoryId }
+          : await prisma.repository.findFirst({
+              where: { owner, name: repo },
+              select: { id: true },
+            });
+
+      if (repository?.id) {
         const action = options.action ?? "manual";
         const mode =
           action === "closed" && options.merged ? "merge_recap" : "active";
@@ -142,29 +175,58 @@ export async function reviewPullRequest(
           options.idempotencyKey ??
           [deliveryId, owner, repo, prNumber, action, headSha].join(":");
 
-        await prisma.review.create({
-          data: {
-            repositoryId: repository.id,
-            prNumber,
-            prTitle: `[Failed] PR #${prNumber}`,
-            prUrl:
-              options.prUrl ?? `https://github.com/${owner}/${repo}/pull/${prNumber}`,
-            review: [
-              "<!-- CODEHORSE_RUN -->",
-              `status=failed`,
-              `mode=${mode}`,
-              `action=${action}`,
-              `owner=${owner}`,
-              `repo=${repo}`,
-              `prNumber=${prNumber}`,
-              `headSha=${headSha}`,
-              `deliveryId=${deliveryId}`,
-              `idempotency=${idempotencyKey}`,
-              `error=${error instanceof Error ? error.message : "Unknown Error"}`,
-            ].join("\n"),
-            status: "failed",
-          },
-        });
+        if (queuedReviewId) {
+          await prisma.review.update({
+            where: {
+              id: queuedReviewId,
+            },
+            data: {
+              prTitle: `[Failed] PR #${prNumber}`,
+              prUrl:
+                options.prUrl ??
+                `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+              review: [
+                "<!-- CODEHORSE_RUN -->",
+                `status=failed`,
+                `mode=${mode}`,
+                `action=${action}`,
+                `owner=${owner}`,
+                `repo=${repo}`,
+                `prNumber=${prNumber}`,
+                `headSha=${headSha}`,
+                `deliveryId=${deliveryId}`,
+                `idempotency=${idempotencyKey}`,
+                `error=${getReviewErrorMessage(error, failureStage)}`,
+              ].join("\n"),
+              status: "failed",
+            },
+          });
+        } else {
+          await prisma.review.create({
+            data: {
+              repositoryId: repository.id,
+              prNumber,
+              prTitle: `[Failed] PR #${prNumber}`,
+              prUrl:
+                options.prUrl ??
+                `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+              review: [
+                "<!-- CODEHORSE_RUN -->",
+                `status=failed`,
+                `mode=${mode}`,
+                `action=${action}`,
+                `owner=${owner}`,
+                `repo=${repo}`,
+                `prNumber=${prNumber}`,
+                `headSha=${headSha}`,
+                `deliveryId=${deliveryId}`,
+                `idempotency=${idempotencyKey}`,
+                `error=${getReviewErrorMessage(error, failureStage)}`,
+              ].join("\n"),
+              status: "failed",
+            },
+          });
+        }
       }
     } catch (dbError) {
       console.error("Failed to save error to database:", dbError);
@@ -172,7 +234,7 @@ export async function reviewPullRequest(
 
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unknown Error",
+      message: getReviewErrorMessage(error, failureStage),
     };
   }
 }
