@@ -26,6 +26,9 @@ type InlineFinding = {
 
 type StructuredReview = {
   summary: string;
+  engineeringManagerReview: string;
+  changedFiles: string[];
+  architectureDiagram: string[];
   strengths: string[];
   criticalFindings: Array<{
     title: string;
@@ -34,12 +37,29 @@ type StructuredReview = {
     confidence?: "low" | "medium" | "high";
   }>;
   improvements: string[];
+  riskRadar: Array<{
+    area: string;
+    level: ReviewRisk;
+    reason: string;
+  }>;
+  testPlan: string[];
+  releaseReadiness: string[];
   riskLevel: ReviewRisk;
   mergeRecommendation: string;
+  funFactPoem: string;
   inlineFindings: InlineFinding[];
 };
 
 const sanitizeMarkdown = (value: string) => value.replace(/\u0000/g, "");
+
+const defaultDiagram = [
+  "flowchart TD",
+  '  PR["Pull request"] --> Diff["Changed files"]',
+  '  Diff --> Review["CodeHorse analysis"]',
+  '  Review --> Risks["Risk and quality checks"]',
+  '  Risks --> Tests["Validation plan"]',
+  '  Tests --> Decision["Merge recommendation"]',
+];
 
 const stripJsonFence = (raw: string) => {
   const trimmed = raw.trim();
@@ -102,11 +122,26 @@ const extractChangedLines = (diff: string) => {
 const toStructuredReview = (raw: string): StructuredReview => {
   const fallback: StructuredReview = {
     summary: "Review generated. Inline parsing failed, showing fallback summary.",
+    engineeringManagerReview:
+      "The pull request needs manual verification because the structured response could not be parsed.",
+    changedFiles: [],
+    architectureDiagram: defaultDiagram,
     strengths: ["Automated review generated successfully."],
     criticalFindings: [],
     improvements: [],
+    riskRadar: [
+      {
+        area: "Review confidence",
+        level: "medium",
+        reason: "The model response was generated but could not be parsed into the full review schema.",
+      },
+    ],
+    testPlan: ["Manually inspect the changed files and rerun the review."],
+    releaseReadiness: ["Do not merge solely on this fallback review."],
     riskLevel: "medium",
     mergeRecommendation: "Needs manual verification",
+    funFactPoem:
+      "A tiny review lost its map,\nSo humans should inspect the gap,\nRun it again with steady light,\nAnd ship the code when all is right.",
     inlineFindings: [],
   };
 
@@ -114,11 +149,38 @@ const toStructuredReview = (raw: string): StructuredReview => {
     const parsed = JSON.parse(stripJsonFence(raw)) as StructuredReview;
     return {
       summary: parsed.summary || fallback.summary,
+      engineeringManagerReview:
+        typeof parsed.engineeringManagerReview === "string"
+          ? parsed.engineeringManagerReview
+          : fallback.engineeringManagerReview,
+      changedFiles: Array.isArray(parsed.changedFiles)
+        ? parsed.changedFiles.filter((item) => typeof item === "string")
+        : [],
+      architectureDiagram: Array.isArray(parsed.architectureDiagram)
+        ? parsed.architectureDiagram.filter((item) => typeof item === "string")
+        : fallback.architectureDiagram,
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
       criticalFindings: Array.isArray(parsed.criticalFindings)
         ? parsed.criticalFindings
         : [],
       improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+      riskRadar: Array.isArray(parsed.riskRadar)
+        ? parsed.riskRadar.filter(
+            (item) =>
+              item &&
+              typeof item.area === "string" &&
+              typeof item.reason === "string" &&
+              (item.level === "low" ||
+                item.level === "medium" ||
+                item.level === "high"),
+          )
+        : fallback.riskRadar,
+      testPlan: Array.isArray(parsed.testPlan)
+        ? parsed.testPlan.filter((item) => typeof item === "string")
+        : [],
+      releaseReadiness: Array.isArray(parsed.releaseReadiness)
+        ? parsed.releaseReadiness.filter((item) => typeof item === "string")
+        : [],
       riskLevel:
         parsed.riskLevel === "low" ||
         parsed.riskLevel === "medium" ||
@@ -127,6 +189,10 @@ const toStructuredReview = (raw: string): StructuredReview => {
           : "medium",
       mergeRecommendation:
         parsed.mergeRecommendation || fallback.mergeRecommendation,
+      funFactPoem:
+        typeof parsed.funFactPoem === "string"
+          ? parsed.funFactPoem
+          : fallback.funFactPoem,
       inlineFindings: Array.isArray(parsed.inlineFindings)
         ? parsed.inlineFindings.filter(
             (item) =>
@@ -149,7 +215,16 @@ const buildReviewMarkdown = (review: StructuredReview, mode: ReviewMode) => {
       [
         "## Merge Recap",
         "",
+        "### Executive Summary",
         review.summary,
+        "",
+        "### Engineering Manager Readout",
+        review.engineeringManagerReview,
+        "",
+        "### Release Readiness",
+        review.releaseReadiness.length > 0
+          ? review.releaseReadiness.map((item) => `- ${item}`).join("\n")
+          : "- No release notes were generated.",
         "",
         `**Risk Level:** ${review.riskLevel}`,
         `**Merge Recommendation:** ${review.mergeRecommendation}`,
@@ -177,25 +252,82 @@ const buildReviewMarkdown = (review: StructuredReview, mode: ReviewMode) => {
       ? "- No improvements suggested."
       : review.improvements.map((item) => `- ${item}`).join("\n");
 
+  const changedFiles =
+    review.changedFiles.length === 0
+      ? "- No changed file summary was generated."
+      : review.changedFiles.map((item) => `- ${item}`).join("\n");
+
+  const riskRadar =
+    review.riskRadar.length === 0
+      ? "| Area | Level | Reason |\n| --- | --- | --- |\n| Overall | medium | Manual verification recommended. |"
+      : [
+          "| Area | Level | Reason |",
+          "| --- | --- | --- |",
+          ...review.riskRadar.map(
+            (item) => `| ${item.area} | ${item.level} | ${item.reason} |`,
+          ),
+        ].join("\n");
+
+  const testPlan =
+    review.testPlan.length === 0
+      ? "- Add or run the tests that cover the changed behavior."
+      : review.testPlan.map((item) => `- ${item}`).join("\n");
+
+  const releaseReadiness =
+    review.releaseReadiness.length === 0
+      ? "- Confirm owners, rollout risk, and rollback path before merge."
+      : review.releaseReadiness.map((item) => `- ${item}`).join("\n");
+
+  const diagramLines =
+    review.architectureDiagram.length > 0
+      ? review.architectureDiagram
+      : defaultDiagram;
+
   return sanitizeMarkdown(
     [
-      "## CodeHorse AI Review",
+      "## CodeHorse PR Review",
       "",
-      `### Summary`,
+      `### Executive Summary`,
       review.summary,
+      "",
+      `### Engineering Manager Readout`,
+      review.engineeringManagerReview,
+      "",
+      `### Changed Files`,
+      changedFiles,
+      "",
+      `### Change Flow Diagram`,
+      "```mermaid",
+      diagramLines.join("\n"),
+      "```",
+      "",
+      `### Risk Radar`,
+      riskRadar,
       "",
       `### Strengths`,
       strengths,
       "",
-      `### Critical Findings`,
+      `### Findings`,
       findings,
       "",
       `### Improvements`,
       improvements,
       "",
+      `### Test Plan`,
+      testPlan,
+      "",
+      `### Release Readiness`,
+      releaseReadiness,
+      "",
       `### Decision`,
       `Risk level: **${review.riskLevel}**`,
       `Recommendation: **${review.mergeRecommendation}**`,
+      "",
+      `### Fun Fact Poem`,
+      review.funFactPoem
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n"),
     ].join("\n"),
   );
 };
@@ -430,7 +562,8 @@ export const generateReview = inngest.createFunction(
 
     const structuredReview = await step.run("generate-ai-review", async () => {
       if (reviewMode === "merge_recap") {
-        const prompt = `You are a senior engineer writing a concise merge recap.
+        const prompt = `You are a principal engineer and engineering manager writing a concise merge recap.
+Be direct, production-minded, and useful for a team lead deciding whether the merged work is healthy.
 
 Repository: ${owner}/${repo}
 Pull request: #${prNumberValue}
@@ -440,11 +573,18 @@ Description: ${description || "No description"}
 Respond with ONLY JSON:
 {
   "summary": "string",
+  "engineeringManagerReview": "string",
+  "changedFiles": ["string"],
+  "architectureDiagram": ["flowchart TD", "  A[... ] --> B[... ]"],
   "strengths": ["string"],
   "criticalFindings": [],
   "improvements": ["string"],
+  "riskRadar": [{ "area": "string", "level": "low|medium|high", "reason": "string" }],
+  "testPlan": ["string"],
+  "releaseReadiness": ["string"],
   "riskLevel": "low|medium|high",
   "mergeRecommendation": "string",
+  "funFactPoem": "four short lines, playful but professional, about this PR",
   "inlineFindings": []
 }
 `;
@@ -457,9 +597,15 @@ Respond with ONLY JSON:
         return toStructuredReview(text);
       }
 
-      const prompt = `You are a senior staff engineer performing code review.
+      const prompt = `You are CodeHorse, a principal engineer and engineering manager performing a production-grade pull request review.
+Your review must be useful to a senior engineer, an engineering manager, and the PR author.
+Be specific, direct, and actionable. Prioritize correctness, security, maintainability, reliability, testing gaps, edge cases, and product impact.
+Do not invent files, behavior, or runtime facts that are not supported by the diff or supplied context.
 Review only changed lines unless a cross-file impact is clear.
 If uncertain, explicitly use low confidence.
+The engineeringManagerReview should summarize impact, owner action, risk, and merge posture in 4-6 sentences.
+The architectureDiagram must be Mermaid flowchart lines as a JSON array. Use quoted labels. If the diff does not reveal app architecture, diagram the PR review/risk flow for this change.
+The funFactPoem must be 4 short lines max, playful but professional, and related to the pull request. No emojis.
 
 Repository: ${owner}/${repo}
 PR #${prNumberValue}
@@ -477,13 +623,22 @@ ${diff}
 Return ONLY valid JSON with this exact shape:
 {
   "summary": "string",
+  "engineeringManagerReview": "string",
+  "changedFiles": ["file path plus concise purpose"],
+  "architectureDiagram": ["flowchart TD", "  PR[\"Pull request\"] --> Diff[\"Changed files\"]"],
   "strengths": ["string"],
   "criticalFindings": [
     { "title": "string", "body": "string", "severity": "critical|high|medium|low", "confidence": "low|medium|high" }
   ],
   "improvements": ["string"],
+  "riskRadar": [
+    { "area": "Correctness|Security|Maintainability|Testing|Performance|UX", "level": "low|medium|high", "reason": "string" }
+  ],
+  "testPlan": ["specific validation step"],
+  "releaseReadiness": ["specific release or rollback note"],
   "riskLevel": "low|medium|high",
   "mergeRecommendation": "Approve|Needs changes|Request follow-up",
+  "funFactPoem": "string",
   "inlineFindings": [
     {
       "path": "string",

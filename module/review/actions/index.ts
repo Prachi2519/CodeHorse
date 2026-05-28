@@ -42,6 +42,8 @@ export type ReviewListItem = {
   updatedAt: string;
 };
 
+const STALE_ACTIVE_REVIEW_MS = 15 * 60 * 1000;
+
 const parseRunMeta = (reviewBody: string) => {
   const lines = reviewBody.split("\n");
   const values = new Map<string, string>();
@@ -72,6 +74,65 @@ const parseRunMeta = (reviewBody: string) => {
   };
 };
 
+const markStaleActiveReviewsAsFailed = async (userId: string) => {
+  const staleBefore = new Date(Date.now() - STALE_ACTIVE_REVIEW_MS);
+  const staleReviews = await prisma.review.findMany({
+    where: {
+      status: {
+        in: ["queued", "running"],
+      },
+      updatedAt: {
+        lt: staleBefore,
+      },
+      repository: {
+        userId,
+      },
+    },
+    select: {
+      id: true,
+      prNumber: true,
+      review: true,
+      repository: {
+        select: {
+          owner: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (staleReviews.length === 0) {
+    return;
+  }
+
+  await prisma.$transaction(
+    staleReviews.map((review) => {
+      const meta = parseRunMeta(review.review);
+
+      return prisma.review.update({
+        where: {
+          id: review.id,
+        },
+        data: {
+          prTitle: `[Stale] PR #${review.prNumber}`,
+          review: [
+            "<!-- CODEHORSE_RUN -->",
+            "status=failed",
+            `mode=${meta.mode}`,
+            `action=${meta.action}`,
+            `owner=${review.repository.owner}`,
+            `repo=${review.repository.name}`,
+            `prNumber=${review.prNumber}`,
+            `error=Review run became stale before completion. Queue the review again if you still need fresh analysis.`,
+            `staleAt=${new Date().toISOString()}`,
+          ].join("\n"),
+          status: "failed",
+        },
+      });
+    }),
+  );
+};
+
 export async function getReviews(params: GetReviewsParams = {}) {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -80,6 +141,8 @@ export async function getReviews(params: GetReviewsParams = {}) {
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
+
+  await markStaleActiveReviewsAsFailed(session.user.id);
 
   const search = params.search?.trim();
   const status = params.status && params.status !== "all" ? params.status : null;
@@ -151,6 +214,8 @@ export async function getReviewStats() {
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
+
+  await markStaleActiveReviewsAsFailed(session.user.id);
 
   const [total, completed, failed, running, repositories] = await Promise.all([
     prisma.review.count({

@@ -67,6 +67,11 @@ type ManualReviewFeedback =
   | { tone: "warning"; title: string; message: string }
   | { tone: "danger"; title: string; message: string };
 
+const isReviewActive = (review: Pick<ReviewListItem, "status">) =>
+  review.status === "queued" ||
+  review.status === "pending" ||
+  review.status === "running";
+
 const GitHubMark = ({ className }: { className?: string }) => (
   <svg
     aria-hidden="true"
@@ -84,6 +89,7 @@ const ReviewsPage = () => {
   const [status, setStatus] = useState<ReviewStatus>("all");
   const [repositoryFilter, setRepositoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ReviewViewMode>("list");
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [manualPrInput, setManualPrInput] = useState("");
   const [manualTouched, setManualTouched] = useState(false);
   const [manualFeedback, setManualFeedback] =
@@ -105,6 +111,10 @@ const ReviewsPage = () => {
     queryKey: ["reviews", search, status],
     queryFn: async () => await getReviews({ search, status }),
     staleTime: 1000 * 15,
+    refetchInterval: (query) => {
+      const data = query.state.data as ReviewListItem[] | undefined;
+      return data?.some(isReviewActive) ? 3000 : false;
+    },
     refetchOnWindowFocus: false,
   });
 
@@ -112,6 +122,10 @@ const ReviewsPage = () => {
     queryKey: ["review-stats"],
     queryFn: async () => await getReviewStats(),
     staleTime: 1000 * 15,
+    refetchInterval: (query) => {
+      const data = query.state.data as { running?: number } | undefined;
+      return data?.running ? 3000 : false;
+    },
     refetchOnWindowFocus: false,
   });
 
@@ -125,9 +139,11 @@ const ReviewsPage = () => {
     return items.filter((review) => review.repositoryId === repositoryFilter);
   }, [repositoryFilter, reviews]);
 
-  const latestReview = reviewList[0];
-  const latestReviewBody = latestReview
-    ? getVisibleReviewBody(latestReview.review)
+  const selectedReview =
+    reviewList.find((review) => review.id === selectedReviewId) ??
+    reviewList[0];
+  const selectedReviewBody = selectedReview
+    ? getVisibleReviewBody(selectedReview.review)
     : "";
 
   const repositoryOptions = useMemo(() => {
@@ -150,6 +166,12 @@ const ReviewsPage = () => {
             : "the selected pull request";
 
         toast.success("Manual review queued.");
+        setSearch("");
+        setStatus("all");
+        setRepositoryFilter("all");
+        if ("queuedReviewId" in result && typeof result.queuedReviewId === "string") {
+          setSelectedReviewId(result.queuedReviewId);
+        }
         setManualPrInput("");
         setManualTouched(false);
         setManualFeedback({
@@ -337,12 +359,14 @@ const ReviewsPage = () => {
             ) : (
               <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
                 <ReviewQueue
+                  selectedReviewId={selectedReview?.id ?? null}
                   reviews={reviewList}
                   viewMode={viewMode}
+                  onSelectReview={setSelectedReviewId}
                 />
-                <LatestReview
-                  latestReview={latestReview}
-                  latestReviewBody={latestReviewBody}
+                <ReviewDetailPanel
+                  selectedReview={selectedReview}
+                  selectedReviewBody={selectedReviewBody}
                 />
               </section>
             )}
@@ -751,11 +775,15 @@ const ViewButton = ({
 };
 
 const ReviewQueue = ({
+  selectedReviewId,
   reviews,
   viewMode,
+  onSelectReview,
 }: {
+  selectedReviewId: string | null;
   reviews: ReviewListItem[];
   viewMode: ReviewViewMode;
+  onSelectReview: (reviewId: string) => void;
 }) => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
@@ -781,7 +809,13 @@ const ReviewQueue = ({
         )}
       >
         {reviews.map((review) => (
-          <ReviewRow key={review.id} review={review} viewMode={viewMode} />
+          <ReviewRow
+            isSelected={review.id === selectedReviewId}
+            key={review.id}
+            review={review}
+            viewMode={viewMode}
+            onSelect={() => onSelectReview(review.id)}
+          />
         ))}
       </div>
     </section>
@@ -789,14 +823,35 @@ const ReviewQueue = ({
 };
 
 const ReviewRow = ({
+  isSelected,
   review,
   viewMode,
+  onSelect,
 }: {
+  isSelected: boolean;
   review: ReviewListItem;
   viewMode: ReviewViewMode;
+  onSelect: () => void;
 }) => {
   return (
-    <article className="rounded-lg border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30">
+    <article
+      aria-pressed={isSelected}
+      className={cn(
+        "cursor-pointer rounded-lg border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        isSelected
+          ? "border-primary/45 bg-primary/10 shadow-lg shadow-primary/10"
+          : "border-border",
+      )}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -822,9 +877,17 @@ const ReviewRow = ({
               {getVisibleReviewBody(review.review) || "No output recorded yet."}
             </p>
           ) : null}
+          <p className="text-sm font-medium text-primary">
+            {isSelected ? "Showing in review panel" : "Click to inspect review"}
+          </p>
         </div>
         <Button asChild size="icon" variant="ghost">
-          <a href={review.prUrl} rel="noreferrer" target="_blank">
+          <a
+            href={review.prUrl}
+            onClick={(event) => event.stopPropagation()}
+            rel="noreferrer"
+            target="_blank"
+          >
             <ArrowUpRight className="size-4" />
             <span className="sr-only">Open pull request</span>
           </a>
@@ -834,48 +897,62 @@ const ReviewRow = ({
   );
 };
 
-const LatestReview = ({
-  latestReview,
-  latestReviewBody,
+const ReviewDetailPanel = ({
+  selectedReview,
+  selectedReviewBody,
 }: {
-  latestReview?: ReviewListItem;
-  latestReviewBody: string;
+  selectedReview?: ReviewListItem;
+  selectedReviewBody: string;
 }) => {
   return (
     <section className="codehorse-panel rounded-lg p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-foreground">
-            Latest Review
+            Selected Review
           </h2>
           <p className="text-base text-muted-foreground">
-            A focused preview of the newest generated review.
+            Click any PR from the queue to inspect its generated review here.
           </p>
         </div>
-        {latestReview ? <StatusBadge status={latestReview.status} /> : null}
+        {selectedReview ? <StatusBadge status={selectedReview.status} /> : null}
       </div>
 
       <div className="mt-4">
-        {latestReview ? (
+        {selectedReview ? (
           <>
             <div className="rounded-lg border border-border bg-muted/30 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-base text-muted-foreground">
-                    {latestReview.repositoryFullName}
+                    {selectedReview.repositoryFullName}
                   </p>
                   <h3 className="mt-1 line-clamp-2 text-xl font-semibold tracking-tight text-foreground">
-                    #{latestReview.prNumber} {latestReview.prTitle}
+                    #{selectedReview.prNumber} {selectedReview.prTitle}
                   </h3>
                 </div>
                 <Button asChild size="sm" variant="outline">
-                  <a href={latestReview.prUrl} rel="noreferrer" target="_blank">
+                  <a href={selectedReview.prUrl} rel="noreferrer" target="_blank">
                     Open PR
                     <ArrowUpRight className="size-4" />
                   </a>
                 </Button>
               </div>
             </div>
+
+            {isReviewActive(selectedReview) ? (
+              <div className="mt-4 rounded-lg border border-primary/20 bg-primary/10 p-4 text-base leading-7 text-primary">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Loader2 className="size-4 animate-spin" />
+                  Review analysis is being generated
+                </div>
+                <p className="mt-1 text-primary/90">
+                  This panel refreshes every few seconds while CodeHorse builds
+                  the engineering review, risk analysis, diagram, and PR
+                  feedback.
+                </p>
+              </div>
+            ) : null}
 
             <article className="mt-4 max-h-[560px] overflow-auto rounded-lg border border-border bg-background/70 p-5">
               <Tabs defaultValue="overview">
@@ -886,15 +963,13 @@ const LatestReview = ({
                   <TabsTrigger value="raw">Raw</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview">
-                  <pre className="whitespace-pre-wrap break-words text-base leading-7 text-foreground">
-                    {latestReviewBody}
-                  </pre>
+                  <ReviewMarkdown content={selectedReviewBody} />
                 </TabsContent>
                 <TabsContent value="inline">
-                  {latestReview.commentUrl ? (
+                  {selectedReview.commentUrl ? (
                     <Button asChild size="sm" variant="outline">
                       <a
-                        href={latestReview.commentUrl}
+                        href={selectedReview.commentUrl}
                         rel="noreferrer"
                         target="_blank"
                       >
@@ -910,28 +985,28 @@ const LatestReview = ({
                 </TabsContent>
                 <TabsContent value="timeline">
                   <div className="space-y-2 text-base">
-                    <TimelineRow label="Status" value={latestReview.status} />
-                    <TimelineRow label="Mode" value={latestReview.mode} />
-                    <TimelineRow label="Action" value={latestReview.action} />
+                    <TimelineRow label="Status" value={selectedReview.status} />
+                    <TimelineRow label="Mode" value={selectedReview.mode} />
+                    <TimelineRow label="Action" value={selectedReview.action} />
                     <TimelineRow
                       label="Created"
-                      value={dateFormatter.format(new Date(latestReview.createdAt))}
+                      value={dateFormatter.format(new Date(selectedReview.createdAt))}
                     />
                     <TimelineRow
                       label="Updated"
-                      value={dateFormatter.format(new Date(latestReview.updatedAt))}
+                      value={dateFormatter.format(new Date(selectedReview.updatedAt))}
                     />
-                    {latestReview.errorReason ? (
+                    {selectedReview.errorReason ? (
                       <p className="text-danger">
                         <span className="font-medium">Error:</span>{" "}
-                        {latestReview.errorReason}
+                        {selectedReview.errorReason}
                       </p>
                     ) : null}
                   </div>
                 </TabsContent>
                 <TabsContent value="raw">
                   <pre className="whitespace-pre-wrap break-words text-base leading-7 text-muted-foreground">
-                    {latestReview.review}
+                    {selectedReview.review}
                   </pre>
                 </TabsContent>
               </Tabs>
@@ -949,6 +1024,299 @@ const TimelineRow = ({ label, value }: { label: string; value: string }) => {
       <span className="font-medium">{label}:</span> {value}
     </p>
   );
+};
+
+type ReviewMarkdownBlock =
+  | { type: "heading"; level: number; value: string }
+  | { type: "paragraph"; value: string }
+  | { type: "list"; items: string[] }
+  | { type: "quote"; value: string }
+  | { type: "code"; language: string; value: string }
+  | { type: "table"; rows: string[][] };
+
+const ReviewMarkdown = ({ content }: { content: string }) => {
+  const blocks = useMemo(() => parseReviewMarkdown(content), [content]);
+
+  if (!content.trim()) {
+    return (
+      <p className="text-base leading-7 text-muted-foreground">
+        Review output will appear here as soon as the run completes.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-5 text-base leading-7 text-foreground">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          const HeadingTag = block.level <= 2 ? "h2" : "h3";
+          return (
+            <HeadingTag
+              className={cn(
+                "font-semibold tracking-normal text-foreground",
+                block.level <= 2 ? "text-2xl" : "text-xl",
+              )}
+              key={`${block.type}-${index}`}
+            >
+              {block.value}
+            </HeadingTag>
+          );
+        }
+
+        if (block.type === "list") {
+          return (
+            <ul
+              className="space-y-2 rounded-lg border border-border bg-card/70 p-4"
+              key={`${block.type}-${index}`}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li
+                  className="flex gap-3 text-base leading-7 text-muted-foreground"
+                  key={`${item}-${itemIndex}`}
+                >
+                  <span className="mt-3 size-1.5 shrink-0 rounded-full bg-primary" />
+                  <span>{renderInlineMarkdown(item)}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.type === "quote") {
+          return (
+            <blockquote
+              className="rounded-lg border border-primary/20 bg-primary/10 p-4 text-base leading-7 text-primary"
+              key={`${block.type}-${index}`}
+            >
+              {block.value.split("\n").map((line, lineIndex) => (
+                <p key={`${line}-${lineIndex}`}>{renderInlineMarkdown(line)}</p>
+              ))}
+            </blockquote>
+          );
+        }
+
+        if (block.type === "code") {
+          return (
+            <div
+              className="overflow-hidden rounded-lg border border-border bg-muted/40"
+              key={`${block.type}-${index}`}
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-2 text-sm font-medium text-muted-foreground">
+                <span>
+                  {block.language === "mermaid"
+                    ? "Change flow diagram"
+                    : block.language || "Code"}
+                </span>
+                {block.language === "mermaid" ? (
+                  <Badge className="border-primary/20 bg-primary/10 text-primary">
+                    Mermaid
+                  </Badge>
+                ) : null}
+              </div>
+              <pre className="overflow-x-auto p-4 text-sm leading-6 text-foreground">
+                <code>{block.value}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        if (block.type === "table") {
+          return (
+            <div
+              className="overflow-hidden rounded-lg border border-border"
+              key={`${block.type}-${index}`}
+            >
+              <table className="w-full min-w-[520px] text-left text-base">
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr
+                      className={cn(
+                        "border-b border-border last:border-0",
+                        rowIndex === 0 && "bg-muted/50 font-semibold",
+                      )}
+                      key={`${row.join("-")}-${rowIndex}`}
+                    >
+                      {row.map((cell, cellIndex) => (
+                        <td
+                          className="px-4 py-3 text-muted-foreground first:text-foreground"
+                          key={`${cell}-${cellIndex}`}
+                        >
+                          {renderInlineMarkdown(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
+        return (
+          <p
+            className="text-base leading-7 text-muted-foreground"
+            key={`${block.type}-${index}`}
+          >
+            {renderInlineMarkdown(block.value)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+const parseReviewMarkdown = (content: string): ReviewMarkdownBlock[] => {
+  const blocks: ReviewMarkdownBlock[] = [];
+  const lines = content.split("\n");
+  let paragraph: string[] = [];
+  let list: string[] = [];
+  let quote: string[] = [];
+  let table: string[][] = [];
+  let codeLanguage = "";
+  let codeLines: string[] | null = null;
+
+  const flushParagraph = () => {
+    if (paragraph.length > 0) {
+      blocks.push({ type: "paragraph", value: paragraph.join(" ") });
+      paragraph = [];
+    }
+  };
+
+  const flushList = () => {
+    if (list.length > 0) {
+      blocks.push({ type: "list", items: list });
+      list = [];
+    }
+  };
+
+  const flushQuote = () => {
+    if (quote.length > 0) {
+      blocks.push({ type: "quote", value: quote.join("\n") });
+      quote = [];
+    }
+  };
+
+  const flushTable = () => {
+    const rows = table.filter(
+      (row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell.trim())),
+    );
+    if (rows.length > 0) {
+      blocks.push({ type: "table", rows });
+      table = [];
+    }
+  };
+
+  const flushOpenBlocks = () => {
+    flushParagraph();
+    flushList();
+    flushQuote();
+    flushTable();
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
+
+    if (codeLines) {
+      if (trimmed.startsWith("```")) {
+        blocks.push({
+          type: "code",
+          language: codeLanguage,
+          value: codeLines.join("\n"),
+        });
+        codeLines = null;
+        codeLanguage = "";
+      } else {
+        codeLines.push(rawLine);
+      }
+      continue;
+    }
+
+    if (trimmed.startsWith("```")) {
+      flushOpenBlocks();
+      codeLanguage = trimmed.replace(/^```/, "").trim().toLowerCase();
+      codeLines = [];
+      continue;
+    }
+
+    if (!trimmed) {
+      flushOpenBlocks();
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{2,4})\s+(.+)$/);
+    if (headingMatch) {
+      flushOpenBlocks();
+      blocks.push({
+        type: "heading",
+        level: headingMatch[1].length,
+        value: headingMatch[2],
+      });
+      continue;
+    }
+
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      flushParagraph();
+      flushList();
+      flushQuote();
+      table.push(
+        trimmed
+          .slice(1, -1)
+          .split("|")
+          .map((cell) => cell.trim()),
+      );
+      continue;
+    }
+
+    if (trimmed.startsWith(">")) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      quote.push(trimmed.replace(/^>\s?/, ""));
+      continue;
+    }
+
+    const listMatch = trimmed.match(/^(-|\d+\.)\s+(.+)$/);
+    if (listMatch) {
+      flushParagraph();
+      flushQuote();
+      flushTable();
+      list.push(listMatch[2]);
+      continue;
+    }
+
+    flushList();
+    flushQuote();
+    flushTable();
+    paragraph.push(trimmed);
+  }
+
+  if (codeLines) {
+    blocks.push({
+      type: "code",
+      language: codeLanguage,
+      value: codeLines.join("\n"),
+    });
+  }
+  flushOpenBlocks();
+
+  return blocks;
+};
+
+const renderInlineMarkdown = (value: string) => {
+  const parts = value.split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong className="font-semibold text-foreground" key={`${part}-${index}`}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
 };
 
 const EmptyReviews = ({
