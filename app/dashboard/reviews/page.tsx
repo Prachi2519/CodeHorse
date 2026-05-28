@@ -167,10 +167,15 @@ const ReviewsPage = () => {
         message.toLowerCase().includes("not found") ||
         message.toLowerCase().includes("reconnect") ||
         message.toLowerCase().includes("repository");
+      const runnerIssue = message.toLowerCase().includes("review runner");
 
       setManualFeedback({
         tone: repositoryIssue ? "warning" : "danger",
-        title: repositoryIssue ? "Repository not connected" : "Review not queued",
+        title: repositoryIssue
+          ? "Repository not connected"
+          : runnerIssue
+            ? "Review runner unavailable"
+            : "Review not queued",
         message,
       });
       toast.error(message);

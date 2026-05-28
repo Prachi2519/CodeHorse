@@ -168,7 +168,7 @@ const DashboardPage = () => {
       icon: GitCommit,
       accent: "text-success",
       glow: "from-success/20 to-chart-3/10",
-      trend: "+44 in 6 months",
+      trend: `${numberFormatter.format(totals.commits)} in 12 months`,
     },
     {
       title: "Pull Requests",
@@ -313,7 +313,7 @@ const DashboardPage = () => {
                   Refetches on focus
                 </Badge>
               }
-              subtitle="Commits, pull requests, and reviews from the last 6 months."
+              subtitle="Commits, pull requests, and reviews from the last 12 months."
               title="Monthly Activity"
             />
             <div className="mt-4 flex flex-wrap gap-2">
@@ -337,7 +337,7 @@ const DashboardPage = () => {
                 </button>
               ))}
             </div>
-            <div className="mt-5 h-[360px]">
+            <div className="mt-5 h-[300px]">
               {isLoadingActivity ? (
                 <ChartSkeleton />
               ) : (
@@ -383,8 +383,10 @@ const DashboardPage = () => {
                     />
                     {activeSeries.commits ? (
                       <Bar
+                        barSize={18}
                         dataKey="commits"
                         fill={seriesMeta.commits.color}
+                        maxBarSize={22}
                         radius={[8, 8, 0, 0]}
                       />
                     ) : null}
@@ -626,14 +628,16 @@ const EmptyReviewsPanel = () => {
 const ChartSkeleton = () => {
   return (
     <div className="flex h-full flex-col justify-end gap-3">
-      <div className="grid flex-1 grid-cols-6 items-end gap-5">
-        {[40, 70, 52, 90, 64, 78].map((height) => (
-          <Skeleton
-            className="rounded-lg"
-            key={height}
-            style={{ height: `${height}%` }}
-          />
-        ))}
+      <div className="grid flex-1 grid-cols-12 items-end gap-3">
+        {[28, 42, 34, 56, 40, 48, 36, 62, 44, 52, 38, 46].map(
+          (height, index) => (
+            <Skeleton
+              className="rounded-lg"
+              key={`${height}-${index}`}
+              style={{ height: `${height}%` }}
+            />
+          ),
+        )}
       </div>
       <Skeleton className="h-5 w-full" />
     </div>
