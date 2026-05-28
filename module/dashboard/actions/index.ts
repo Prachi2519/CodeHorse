@@ -150,9 +150,9 @@ export async function getMonthlyActivity() {
       "Dec",
     ];
 
-    // initialize last 6 months
+    // initialize last 12 months
     const now = new Date();
-    for (let i = 5; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = monthNames[date.getMonth()];
       monthlyData[monthKey] = { commits: 0, prs: 0, reviews: 0 };
@@ -174,8 +174,11 @@ export async function getMonthlyActivity() {
       },
     );
 
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const twelveMonthWindowStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 11,
+      1,
+    );
 
     const reviews = await prisma.review.findMany({
       where: {
@@ -183,7 +186,7 @@ export async function getMonthlyActivity() {
           userId: session.user.id,
         },
         createdAt: {
-          gte: sixMonthsAgo,
+          gte: twelveMonthWindowStart,
         },
       },
       select: {
@@ -200,7 +203,7 @@ export async function getMonthlyActivity() {
 
     // TODO: PR'S REAL DATA
     const { data: prs } = await octokit.rest.search.issuesAndPullRequests({
-      q: `author:${user.login} type:pr created:>=${sixMonthsAgo.toISOString().split("T")[0]}`,
+      q: `author:${user.login} type:pr created:>=${twelveMonthWindowStart.toISOString().split("T")[0]}`,
       per_page: 100,
     });
 
