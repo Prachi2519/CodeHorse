@@ -31,7 +31,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useSession } from "@/lib/auth-client";
 import {
   getContributionStats,
   getDashboardStats,
@@ -95,11 +94,6 @@ const DashboardPage = () => {
     prs: true,
     reviews: true,
   });
-
-  const { data: session } = useSession();
-  const accountName = session?.user?.name || "Prachi2519";
-  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
-  const accountInitial = accountName.charAt(0).toUpperCase();
 
   const {
     data: stats,
@@ -236,7 +230,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
               <Button
                 className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
                 disabled={isRefreshing}
@@ -249,19 +243,6 @@ const DashboardPage = () => {
                 />
                 Refresh
               </Button>
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-                  {accountInitial}
-                </div>
-                <div className="hidden min-w-0 sm:block">
-                  <p className="truncate text-base font-medium text-foreground">
-                    {accountName}
-                  </p>
-                  <p className="truncate text-base text-muted-foreground">
-                    {accountEmail}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </header>
