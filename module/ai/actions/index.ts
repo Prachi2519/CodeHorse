@@ -1,6 +1,6 @@
 "use server";
 
-import { inngest } from "@/inngest/client";
+import { inngest, isInngestConfigured } from "@/inngest/client";
 import prisma from "@/lib/db";
 import { getPullRequestDiff } from "@/module/github/lib/github";
 
@@ -25,6 +25,14 @@ const getReviewErrorMessage = (
 
   if (stage === "event" && message.toLowerCase().includes("fetch failed")) {
     return "Review runner is not reachable. Start the Inngest dev server with `npm run inngest` in another terminal, then queue the review again.";
+  }
+
+  if (
+    stage === "event" &&
+    (message.includes("INNGEST_EVENT_KEY") ||
+      message.toLowerCase().includes("event key"))
+  ) {
+    return "Inngest is not configured. Add INNGEST_EVENT_KEY and INNGEST_SIGNING_KEY to Vercel, redeploy, then queue the review again. For local development, run `npm run dev` and `npm run inngest` in separate terminals.";
   }
 
   if (stage === "github" && message.toLowerCase().includes("fetch failed")) {
@@ -119,6 +127,13 @@ export async function reviewPullRequest(
     queuedReviewId = queuedReview.id;
 
     failureStage = "event";
+
+    if (!isInngestConfigured()) {
+      throw new Error(
+        "INNGEST_EVENT_KEY is missing. Add INNGEST_EVENT_KEY and INNGEST_SIGNING_KEY to Vercel, redeploy, then queue the review again.",
+      );
+    }
+
     const eventResponse = await inngest.send({
       name: "pr.review.requested",
       data: {
