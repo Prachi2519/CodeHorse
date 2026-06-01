@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**AI Code Reviewer and Engineering OS for GitHub repositories**
+**AI Code Reviewer**
 
 Connect GitHub, track repository activity, and generate AI-powered pull request
 reviews with actionable engineering feedback.
