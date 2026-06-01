@@ -1,5 +1,6 @@
 import { Octokit } from "octokit";
 import { auth } from "@/lib/auth";
+import { getGitHubWebhookUrl } from "@/lib/app-url";
 import prisma from "@/lib/db";
 import { headers } from "next/headers";
 
@@ -137,13 +138,7 @@ export const createWebhook = async (owner: string, repo: string) => {
   const token = await getGithubToken();
   const octokit = new Octokit({ auth: token });
 
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL?.trim();
-
-  if (!appBaseUrl) {
-    throw new Error("NEXT_PUBLIC_APP_BASE_URL is not configured");
-  }
-
-  const webhookUrl = `${appBaseUrl.replace(/\/$/, "")}/api/webhooks/github`;
+  const webhookUrl = getGitHubWebhookUrl();
   const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
   const webhookConfig = {
     url: webhookUrl,
@@ -193,13 +188,7 @@ export const createWebhook = async (owner: string, repo: string) => {
 export const deleteWebhook = async (owner: string, repo: string) => {
   const token = await getGithubToken();
   const octokit = new Octokit({ auth: token });
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL?.trim();
-
-  if (!appBaseUrl) {
-    throw new Error("NEXT_PUBLIC_APP_BASE_URL is not configured");
-  }
-
-  const webhookUrl = `${appBaseUrl.replace(/\/$/, "")}/api/webhooks/github`;
+  const webhookUrl = getGitHubWebhookUrl();
 
   try {
     const { data: hooks } = await octokit.rest.repos.listWebhooks({

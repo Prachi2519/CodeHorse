@@ -7,6 +7,8 @@
     "predev": "prisma generate",
     "dev": "cross-env INNGEST_DEV=1 next dev",
     "inngest": "npx --yes --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "vercel:check": "npm run lint && npm exec tsc -- --noEmit && npm run build",
     "prebuild": "prisma generate",
     "build": "next build",
     "start": "next start",

@@ -3,6 +3,9 @@ import { reviewPullRequest } from "@/module/ai/actions";
 import crypto from "crypto";
 import prisma from "@/lib/db";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const REVIEWABLE_ACTIONS = new Set([
   "opened",
   "synchronize",
