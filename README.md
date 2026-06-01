@@ -18,6 +18,10 @@ For local AI review jobs, run Inngest in a second terminal:
 npm run inngest
 ```
 
+Production AI review jobs use Inngest Cloud. Set `INNGEST_EVENT_KEY` and
+`INNGEST_SIGNING_KEY` in Vercel, then sync the deployed app URL:
+`https://your-codehorse-domain.vercel.app/api/inngest`.
+
 Open [http://localhost:3000](http://localhost:3000).
 
 ## Vercel Deployment
