@@ -12,6 +12,29 @@ const isLocalHostLike = (value: string) => {
   );
 };
 
+const normalizeHostOrigin = (host?: string | null, protocol = "https") => {
+  const trimmedHost = host?.trim();
+
+  if (!trimmedHost) {
+    return null;
+  }
+
+  if (
+    /\.\.|[\s<>'"]|javascript:|file:|data:/i.test(trimmedHost) ||
+    trimmedHost.includes("\0")
+  ) {
+    return null;
+  }
+
+  const normalizedProtocol = protocol === "http" ? "http" : "https";
+
+  try {
+    return new URL(`${normalizedProtocol}://${trimmedHost}`).origin;
+  } catch {
+    return null;
+  }
+};
+
 export const isLocalAppOrigin = (origin: string) => {
   const hostname = new URL(origin).hostname;
 
@@ -108,12 +131,37 @@ const normalizeTrustedOrigin = (value?: string | null) => {
   return normalizeAppOrigin(trimmed);
 };
 
-export const getAuthTrustedOrigins = () => {
+const getRequestOrigin = (request?: Request) => {
+  if (!request) {
+    return null;
+  }
+
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto") ??
+    (forwardedHost && isLocalHostLike(forwardedHost) ? "http" : "https");
+  const originFromHeaders = normalizeHostOrigin(forwardedHost, forwardedProto);
+
+  if (originFromHeaders) {
+    return originFromHeaders;
+  }
+
+  return normalizeAppOrigin(request.url);
+};
+
+export const getAuthTrustedOrigins = (request?: Request) => {
   const origins = new Set<string>([
     LOCAL_APP_ORIGIN,
     "http://127.0.0.1:3000",
     "https://*.vercel.app",
   ]);
+
+  const requestOrigin = getRequestOrigin(request);
+
+  if (requestOrigin) {
+    origins.add(requestOrigin);
+  }
 
   for (const origin of getConfiguredOrigins()) {
     origins.add(origin);

@@ -21,7 +21,7 @@ export const auth = betterAuth({
   appName: "CodeHorse",
   baseURL: getAppBaseUrl(),
   secret: betterAuthSecret,
-  trustedOrigins: getAuthTrustedOrigins(),
+  trustedOrigins: (request) => getAuthTrustedOrigins(request),
   advanced: {
     trustedProxyHeaders: true,
   },
