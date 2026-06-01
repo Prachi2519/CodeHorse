@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import {
   getReviews,
@@ -96,11 +95,6 @@ const ReviewsPage = () => {
     useState<ManualReviewFeedback | null>(null);
   const manualInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const { data: session } = useSession();
-  const accountName = session?.user?.name || "Prachi2519";
-  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
-  const accountInitial = accountName.charAt(0).toUpperCase();
 
   const {
     data: reviews,
@@ -302,9 +296,6 @@ const ReviewsPage = () => {
 
       <div className="relative mx-auto flex w-full max-w-[1800px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <ReviewHeader
-          accountEmail={accountEmail}
-          accountInitial={accountInitial}
-          accountName={accountName}
           isFetching={isFetching}
           onSync={() => void refetch()}
           onTriggerReview={focusManualReview}
@@ -378,30 +369,24 @@ const ReviewsPage = () => {
 };
 
 const ReviewHeader = ({
-  accountEmail,
-  accountInitial,
-  accountName,
   isFetching,
   onSync,
   onTriggerReview,
 }: {
-  accountEmail: string;
-  accountInitial: string;
-  accountName: string;
   isFetching: boolean;
   onSync: () => void;
   onTriggerReview: () => void;
 }) => {
   return (
-    <header className="codehorse-panel shrink-0 rounded-lg p-4 xl:p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <header className="codehorse-panel shrink-0 rounded-lg p-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-start gap-4">
-          <div className="codehorse-brand-gradient flex size-11 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-lg">
+          <div className="codehorse-brand-gradient flex size-10 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-md">
             <Bot className="size-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="border-primary/20 bg-primary/10 text-primary">
+              <Badge className="border-border bg-muted/50 text-muted-foreground">
                 <Sparkles className="size-3" />
                 Pull request intelligence
               </Badge>
@@ -416,7 +401,7 @@ const ReviewHeader = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 xl:pt-1">
           <Button
             className="h-11 rounded-lg border-border bg-card/70 text-foreground hover:bg-muted"
             disabled={isFetching}
@@ -428,26 +413,13 @@ const ReviewHeader = ({
             Sync GitHub
           </Button>
           <Button
-            className="h-11 rounded-lg bg-primary px-4 text-primary-foreground shadow-lg hover:bg-primary/90"
+            className="h-11 rounded-lg bg-primary px-4 text-primary-foreground shadow-md hover:bg-primary/90"
             onClick={onTriggerReview}
             type="button"
           >
             <Zap className="size-4" />
             Trigger Review
           </Button>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-              {accountInitial || "P"}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-base font-medium text-foreground">
-                @{accountName}
-              </p>
-              <p className="truncate text-base text-muted-foreground">
-                {accountEmail}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>
