@@ -29,7 +29,10 @@ const normalizeHostOrigin = (host?: string | null, protocol = "https") => {
   const normalizedProtocol = protocol === "http" ? "http" : "https";
 
   try {
-    return new URL(`${normalizedProtocol}://${trimmedHost}`).origin;
+    const url = new URL(`${normalizedProtocol}://${trimmedHost}`);
+    url.hostname = url.hostname.replace(/\.$/, "");
+
+    return url.origin;
   } catch {
     return null;
   }
@@ -57,7 +60,10 @@ export const normalizeAppOrigin = (value?: string | null) => {
     : `${isLocalHostLike(trimmed) ? "http" : "https"}://${trimmed}`;
 
   try {
-    return new URL(withProtocol).origin;
+    const url = new URL(withProtocol);
+    url.hostname = url.hostname.replace(/\.$/, "");
+
+    return url.origin;
   } catch {
     throw new Error(
       "Invalid app URL configured. Set BETTER_AUTH_URL or NEXT_PUBLIC_APP_BASE_URL to a valid origin like https://codehorse.vercel.app.",
@@ -117,6 +123,29 @@ export const getPublicAppBaseUrl = () => {
   );
 };
 
+const getOptionalPublicAppBaseUrl = () => {
+  const origins = [
+    process.env.NEXT_PUBLIC_APP_BASE_URL,
+    process.env.BETTER_AUTH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+  ]
+    .map(normalizeAppOrigin)
+    .filter((origin): origin is string => Boolean(origin));
+
+  const publicOrigin = origins.find((origin) => !isLocalAppOrigin(origin));
+
+  if (publicOrigin) {
+    return publicOrigin;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return origins[0] ?? LOCAL_APP_ORIGIN;
+  }
+
+  return null;
+};
+
 const normalizeTrustedOrigin = (value?: string | null) => {
   const trimmed = value?.trim();
 
@@ -129,6 +158,25 @@ const normalizeTrustedOrigin = (value?: string | null) => {
   }
 
   return normalizeAppOrigin(trimmed);
+};
+
+const normalizeTrustedHost = (value?: string | null) => {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.includes("*")) {
+    return trimmed
+      .replace(/^[a-z][a-z\d+\-.]*:\/\//i, "")
+      .split("/")[0]
+      .replace(/\.$/, "");
+  }
+
+  const origin = normalizeAppOrigin(trimmed);
+
+  return origin ? new URL(origin).host : null;
 };
 
 const getRequestOrigin = (request?: Request) => {
@@ -148,6 +196,40 @@ const getRequestOrigin = (request?: Request) => {
   }
 
   return normalizeAppOrigin(request.url);
+};
+
+export const getAuthAllowedHosts = () => {
+  const hosts = new Set<string>([
+    "localhost:3000",
+    "127.0.0.1:3000",
+    "*.vercel.app",
+  ]);
+
+  for (const origin of getConfiguredOrigins()) {
+    hosts.add(new URL(origin).host);
+  }
+
+  const extraOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? [];
+
+  for (const origin of extraOrigins) {
+    const host = normalizeTrustedHost(origin);
+
+    if (host) {
+      hosts.add(host);
+    }
+  }
+
+  return Array.from(hosts);
+};
+
+export const getAuthBaseURLConfig = () => {
+  const fallback = getOptionalPublicAppBaseUrl();
+
+  return {
+    allowedHosts: getAuthAllowedHosts(),
+    protocol: "auto" as const,
+    ...(fallback ? { fallback } : {}),
+  };
 };
 
 export const getAuthTrustedOrigins = (request?: Request) => {
