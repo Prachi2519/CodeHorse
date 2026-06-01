@@ -22,7 +22,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 type PlanId = "free" | "pro";
@@ -125,11 +124,6 @@ const SubscriptionPage = () => {
   const [currentPlan, setCurrentPlan] = useState<PlanId>("free");
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
 
-  const { data: session } = useSession();
-  const accountName = session?.user?.name || "Prachi2519";
-  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
-  const accountInitial = accountName.charAt(0).toUpperCase();
-
   const currentPlanDetails = useMemo(
     () => plans.find((plan) => plan.id === currentPlan) ?? plans[0],
     [currentPlan],
@@ -166,9 +160,6 @@ const SubscriptionPage = () => {
 
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <SubscriptionHeader
-          accountEmail={accountEmail}
-          accountInitial={accountInitial}
-          accountName={accountName}
           onManageBilling={handleManageBilling}
         />
 
@@ -208,14 +199,8 @@ const SubscriptionPage = () => {
 };
 
 const SubscriptionHeader = ({
-  accountEmail,
-  accountInitial,
-  accountName,
   onManageBilling,
 }: {
-  accountEmail: string;
-  accountInitial: string;
-  accountName: string;
   onManageBilling: () => void;
 }) => {
   return (
@@ -255,19 +240,6 @@ const SubscriptionHeader = ({
             <CreditCard className="size-4" />
             Manage Billing
           </Button>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-              {accountInitial || "P"}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-base font-medium text-foreground">
-                @{accountName}
-              </p>
-              <p className="truncate text-base text-muted-foreground">
-                {accountEmail}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>

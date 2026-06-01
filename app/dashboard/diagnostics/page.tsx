@@ -32,7 +32,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import {
   getReviews,
@@ -100,11 +99,6 @@ const GitHubMark = ({ className }: { className?: string }) => (
 
 const DiagnosticsPage = () => {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
-
-  const accountName = session?.user?.name || "Prachi2519";
-  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
-  const accountInitial = accountName.charAt(0).toUpperCase() || "P";
 
   const {
     data: reviews,
@@ -335,9 +329,6 @@ const DiagnosticsPage = () => {
 
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <DiagnosticsHeader
-          accountEmail={accountEmail}
-          accountInitial={accountInitial}
-          accountName={accountName}
           isRefreshing={isRefreshing}
           isStale={isDiagnosticsStale}
           onRefresh={refreshDiagnostics}
@@ -407,17 +398,11 @@ type DiagnosticLog = {
 };
 
 const DiagnosticsHeader = ({
-  accountEmail,
-  accountInitial,
-  accountName,
   isRefreshing,
   isStale,
   onRefresh,
   onRunHealthCheck,
 }: {
-  accountEmail: string;
-  accountInitial: string;
-  accountName: string;
   isRefreshing: boolean;
   isStale: boolean;
   onRefresh: () => void;
@@ -472,19 +457,6 @@ const DiagnosticsHeader = ({
             <ShieldCheck className="size-4" />
             Run Health Check
           </Button>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-              {accountInitial}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-base font-medium text-foreground">
-                @{accountName}
-              </p>
-              <p className="truncate text-base text-muted-foreground">
-                {accountEmail}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>

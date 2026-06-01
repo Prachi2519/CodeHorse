@@ -49,7 +49,6 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useConnectRepository } from "@/module/repository/hooks/use-connect-repository";
 import {
@@ -114,11 +113,6 @@ const RepositoryPage = () => {
     null,
   );
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const { data: session } = useSession();
-  const accountName = session?.user?.name || "Prachi2519";
-  const accountEmail = session?.user?.email || "prachi639220@gmail.com";
-  const accountInitial = accountName.charAt(0).toUpperCase();
 
   const {
     data,
@@ -310,9 +304,6 @@ const RepositoryPage = () => {
 
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <RepositoryHeader
-          accountEmail={accountEmail}
-          accountInitial={accountInitial}
-          accountName={accountName}
           isFetching={isFetching}
           onFocusSearch={focusRepositorySearch}
           onSync={() => void refetch()}
@@ -433,16 +424,10 @@ const RepositoryPage = () => {
 };
 
 const RepositoryHeader = ({
-  accountEmail,
-  accountInitial,
-  accountName,
   isFetching,
   onFocusSearch,
   onSync,
 }: {
-  accountEmail: string;
-  accountInitial: string;
-  accountName: string;
   isFetching: boolean;
   onFocusSearch: () => void;
   onSync: () => void;
@@ -494,19 +479,6 @@ const RepositoryHeader = ({
             <Sparkles className="size-4" />
             Connect Repository
           </Button>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-              {accountInitial || "P"}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-base font-medium text-foreground">
-                @{accountName}
-              </p>
-              <p className="truncate text-base text-muted-foreground">
-                {accountEmail}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>

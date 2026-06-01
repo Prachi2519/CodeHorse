@@ -263,9 +263,6 @@ const SettingsPage = () => {
 
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <SettingsHeader
-          accountEmail={userEmail}
-          accountInitial={userInitial}
-          accountName={userName}
           onSyncGitHub={handleSyncGitHub}
         />
 
@@ -363,14 +360,8 @@ const SettingsPage = () => {
 };
 
 const SettingsHeader = ({
-  accountEmail,
-  accountInitial,
-  accountName,
   onSyncGitHub,
 }: {
-  accountEmail: string;
-  accountInitial: string;
-  accountName: string;
   onSyncGitHub: () => void;
 }) => {
   return (
@@ -411,19 +402,6 @@ const SettingsHeader = ({
             <RefreshCw className="size-4" />
             Sync GitHub
           </Button>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-            <div className="codehorse-brand-gradient flex size-10 items-center justify-center rounded-lg text-base font-semibold text-primary-foreground">
-              {accountInitial || "P"}
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-base font-medium text-foreground">
-                @{accountName}
-              </p>
-              <p className="truncate text-base text-muted-foreground">
-                {accountEmail}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>
