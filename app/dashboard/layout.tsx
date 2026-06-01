@@ -8,6 +8,9 @@ import { requireAuth } from "@/module/auth/utils/auth-utils";
 export const dynamic = "force-dynamic";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
+
+
+
   await requireAuth();
   const cookieStore = await cookies();
   const defaultSidebarOpen =
@@ -19,10 +22,17 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
       defaultOpen={defaultSidebarOpen}
     >
       <AppSidebar />
+
+
+
       <SidebarInset className="min-h-svh bg-transparent">
         <main className="min-h-svh bg-background text-foreground">
           {children}
         </main>
+
+
+
+        
       </SidebarInset>
     </SidebarProvider>
   );
