@@ -21,9 +21,7 @@ reviews with actionable engineering feedback.
 
 ## Overview
 
-CodeHorse is a full-stack developer SaaS product that works as an Engineering
-OS for GitHub. It helps developers and teams connect repositories, monitor
-engineering activity, and generate AI-powered pull request reviews.
+CodeHorse is a full-stack developer SaaS product that works as an AI Code Reviewer for GitHub. It helps developers and teams connect repository and generate AI-powered pull request reviews.
 
 The product is built around a real production workflow: a user signs in with
 GitHub, connects repositories, queues pull request reviews, and receives
