@@ -7,7 +7,7 @@
 Connect GitHub, track repository activity, and generate AI-powered pull request
 reviews with actionable engineering feedback.
 
-[Live Demo](https://code-horse-glzzdf4et-prachi2519s-projects.vercel.app/login)
+[Live Demo](https://code-horse.vercel.app/login)
 ·
 [GitHub Repository](https://github.com/Prachi2519/CodeHorse)
 
